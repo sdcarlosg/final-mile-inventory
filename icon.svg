@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#334155;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#38bdf8;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0ea5e9;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <rect width="512" height="512" rx="128" fill="url(#grad1)" />
+  
+  <!-- Stylized Box / Inventory Icon -->
+  <path d="M256 120 L400 190 L256 260 L112 190 Z" fill="url(#grad2)" opacity="0.9"/>
+  <path d="M112 215 L256 285 V430 L112 360 Z" fill="#0284c7" />
+  <path d="M400 215 L256 285 V430 L400 360 Z" fill="#075985" />
+  
+  <!-- Highlight details -->
+  <path d="M256 120 L328 155 L184 225 L112 190 Z" fill="white" opacity="0.1"/>
+  <rect x="246" y="285" width="20" height="145" fill="rgba(0,0,0,0.2)" />
+</svg>

@@ -1,0 +1,17 @@
+{
+  "name": "Final Mile Inventory",
+  "short_name": "FM Inventory",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0f0c29",
+  "theme_color": "#0f0c29",
+  "orientation": "portrait",
+  "description": "Asset management simplified.",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}
