@@ -707,6 +707,8 @@ document.addEventListener("DOMContentLoaded", () => {
         reportsModal,
         statsModal,
         document.getElementById("report-emp-list-modal"),
+        document.getElementById("report-risk-modal"),
+        document.getElementById("report-movements-modal"),
       ];
       allModals.forEach((m) => {
         if (m) m.classList.add("hidden");
@@ -731,6 +733,8 @@ document.addEventListener("DOMContentLoaded", () => {
       reportsModal,
       statsModal,
       document.getElementById("report-emp-list-modal"),
+      document.getElementById("report-risk-modal"),
+      document.getElementById("report-movements-modal"),
     ];
 
     if (
@@ -742,6 +746,8 @@ document.addEventListener("DOMContentLoaded", () => {
         "reports-modal",
         "stats-modal",
         "report-emp-list-modal",
+        "report-risk-modal",
+        "report-movements-modal",
       ].includes(targetState)
     ) {
       modals.forEach((m) => m.classList.add("hidden"));
@@ -755,6 +761,12 @@ document.addEventListener("DOMContentLoaded", () => {
         reportsModal.classList.remove("hidden");
       else if (targetState === "report-emp-list-modal") {
         const modal = document.getElementById("report-emp-list-modal");
+        if (modal) modal.classList.remove("hidden");
+      } else if (targetState === "report-risk-modal") {
+        const modal = document.getElementById("report-risk-modal");
+        if (modal) modal.classList.remove("hidden");
+      } else if (targetState === "report-movements-modal") {
+        const modal = document.getElementById("report-movements-modal");
         if (modal) modal.classList.remove("hidden");
       } else if (targetState === "stats-modal")
         statsModal.classList.remove("hidden");
@@ -2028,8 +2040,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 <div class="employee-list-info" style="flex: 1;">
                     <span class="emp-name" style="font-size: 1.1rem; color: #fff;">${escapeHtml(item.nombre)}</span>
                     <span class="emp-phone" style="margin-top: 4px; opacity: 0.8;">${escapeHtml(item.descripcion)}</span>
-                    <div style="margin-top: 8px; font-size: 0.8rem; color: var(--danger); font-weight: 600;">
-                        Asset ID: ${escapeHtml(item.id)}
+                    <div style="margin-top: 8px; font-size: 0.8rem; color: var(--danger); font-weight: 600; display: flex; gap: 8px; align-items: center;">
+                        <span>Asset ID: ${escapeHtml(item.id)}</span>
+                        ${item.condition ? `<span style="background: rgba(239, 68, 68, 0.2); padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; border: 1px solid rgba(239, 68, 68, 0.5);">${escapeHtml(item.condition)}</span>` : ''}
                     </div>
                 </div>
                 <i class="ph ph-warning-circle" style="color: var(--danger); font-size: 1.5rem;"></i>
@@ -2123,7 +2136,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 <div style="flex-shrink: 0;" onclick="event.stopPropagation()">
                     <select class="report-row-condition" style="padding: 0.5rem; border-radius: 6px; background: rgba(255,255,255,0.05); color: white; border: 1px solid var(--border); appearance: auto;">
                         <option value="" disabled ${!isSelected || !selectedReportCondition ? "selected" : ""}>Condition...</option>
-                        <option value="BROKEN" ${isSelected && selectedReportCondition === "BROKEN" ? "selected" : ""}>Broken ⚠️</option>
+                        <option value="DAMAGED" ${isSelected && selectedReportCondition === "DAMAGED" ? "selected" : ""}>Damaged ⚠️</option>
                         <option value="MISSING" ${isSelected && selectedReportCondition === "MISSING" ? "selected" : ""}>Missing ❓</option>
                     </select>
                 </div>
@@ -2237,7 +2250,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
     if (!condition) {
-      showToast("Please select a condition (Broken / Missing)", "error");
+      showToast("Please select a condition (Damaged / Missing)", "error");
       playErrorSound();
       return;
     }
@@ -2255,7 +2268,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!confirmed) return;
 
     inventario[idx].status =
-      condition === "BROKEN" ? "LOST / MAINTENANCE" : "LOST / MAINTENANCE";
+      condition === "DAMAGED" ? "LOST / MAINTENANCE" : "LOST / MAINTENANCE";
     inventario[idx].condition = condition; // Custom sheet column handled backend
     inventario[idx].incidentNote = note; // Custom sheet column handled backend
 
@@ -3815,18 +3828,23 @@ document.addEventListener("DOMContentLoaded", () => {
                             <th>Name</th>
                             <th>Status</th>
                             <th>Assigned To</th>
+                            <th>Date Assigned</th>
+                            <th>Date Returned</th>
                         </tr>
                     </thead>
                     <tbody>
             `;
       if (inventario) {
         inventario.forEach((item) => {
+          const formatDt = (d) => (d && typeof d === "string" ? d.split(/[\sT]/)[0] : d || "");
           tableHtml += `
                         <tr>
                             <td>${item.id}</td>
                             <td>${item.nombre}</td>
                             <td>${item.status}</td>
                             <td>${item.asignadoA}</td>
+                            <td>${formatDt(item.fechaAsignacion)}</td>
+                            <td>${formatDt(item.fechaRetorno)}</td>
                         </tr>
                     `;
         });
@@ -3990,6 +4008,462 @@ document.addEventListener("DOMContentLoaded", () => {
              `;
         });
       }
+      tableHtml += '</tbody></table>';
+      printContainer.innerHTML = tableHtml;
+      document.body.appendChild(printContainer);
+
+      window.print();
+
+      setTimeout(() => {
+        const pc = document.getElementById("print-container");
+        if (pc) pc.remove();
+      }, 1000);
+    });
+  }
+
+  // Movements Report Logic
+  const reportMovementsBtn = document.getElementById("report-movements-btn");
+  const reportMovementsModal = document.getElementById("report-movements-modal");
+  const closeReportMovementsModalBtn = document.getElementById("close-report-movements-modal");
+  const reportMovementsGridContainer = document.getElementById("report-movements-grid-container");
+  const reportMovementsExportBtn = document.getElementById("report-movements-export-btn");
+  const reportMovementsPrintBtn = document.getElementById("report-movements-print-btn");
+  const movementsSearchInput = document.getElementById("movements-search-input");
+
+  const formatDateOnly = (dateStr) => {
+    if (!dateStr || dateStr === "N/A") return "N/A";
+    if (typeof dateStr === "string") return dateStr.split(/[\sT]/)[0];
+    return dateStr;
+  };
+
+  const buildMovementsData = () => {
+    return inventario.filter(item => {
+      // Show if it has been assigned at least once or currently assigned
+      return item.lastAssignedTo || (item.asignadoA && item.asignadoA !== " NONE" && item.asignadoA !== "NONE");
+    });
+  };
+
+  const renderMovementsReportList = () => {
+    if (!reportMovementsGridContainer) return;
+    reportMovementsGridContainer.innerHTML = "";
+
+    let movData = buildMovementsData();
+
+    if (!movData || movData.length === 0) {
+      reportMovementsGridContainer.innerHTML =
+        '<div style="text-align:center; color:var(--text-muted); padding:1.5rem; width:100%; font-size:0.85rem;">No movements found.</div>';
+      return;
+    }
+
+    const term = (movementsSearchInput ? movementsSearchInput.value.toLowerCase().trim() : "");
+    if (term) {
+      movData = movData.filter(item => {
+        return String(item.id).toLowerCase().includes(term) ||
+          (item.nombre || "").toLowerCase().includes(term) ||
+          (item.lastAssignedTo || item.asignadoA || "").toLowerCase().includes(term);
+      });
+    }
+
+    if (movData.length === 0) {
+      reportMovementsGridContainer.innerHTML =
+        '<div style="text-align:center; color:var(--text-muted); padding:1.5rem; width:100%; font-size:0.85rem;">No matches found.</div>';
+      return;
+    }
+
+    // Sort by Name
+    movData.sort((a, b) => (a.nombre || "").localeCompare(b.nombre || ""));
+
+    movData.forEach((item) => {
+      // Note: If the item is currently in use, show current assignment as movement, else last movement
+      const isCurrentlyAssigned = item.status === "IN USE" || item.status === "LOST / MAINTENANCE";
+      const assignedTo = isCurrentlyAssigned ? item.asignadoA : (item.lastAssignedTo || item.asignadoA || "N/A");
+      const dateAssigned = formatDateOnly(isCurrentlyAssigned ? item.fechaAsignacion : (item.lastDateAssigned || item.fechaAsignacion || "N/A"));
+      const dateReturned = formatDateOnly(isCurrentlyAssigned ? "" : (item.lastDateReturned || item.fechaRetorno || "N/A"));
+
+      const row = document.createElement("div");
+      row.className = "inventory-list-item";
+      row.style.cursor = "default";
+      row.style.display = "flex";
+      row.style.flexDirection = "column";
+      row.style.padding = "1rem";
+
+      row.innerHTML = `
+        <div class="employee-list-info" style="width: 100%;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 5px;">
+                <span class="emp-name" style="color: var(--primary); font-size: 1.1rem;">${escapeHtml(item.nombre)} <span style="font-size: 0.8rem; color: var(--text-muted);">#${escapeHtml(String(item.id))}</span></span>
+                <span class="tile-badge" style="position:static; transform:none; background:rgba(34, 197, 94, 0.2); color: var(--success); font-size:0.75rem; padding: 2px 8px; font-weight: bold;">Movement</span>
+            </div>
+            <div style="font-size: 0.85rem; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 5px;">
+                <div><span style="color:var(--text-muted);">Assigned To:</span><br/>${escapeHtml(assignedTo.replace(" (DAMAGED)", "").replace(" (MISSING)", ""))}</div>
+                <div><span style="color:var(--text-muted);">Status:</span><br/>${escapeHtml(item.status)}</div>
+                <div><span style="color:var(--text-muted);">Date Assigned:</span><br/>${escapeHtml(dateAssigned)}</div>
+                <div><span style="color:var(--text-muted);">Date Returned:</span><br/>${escapeHtml(dateReturned)}</div>
+            </div>
+        </div>
+      `;
+      reportMovementsGridContainer.appendChild(row);
+    });
+  };
+
+  if (reportMovementsBtn && reportMovementsModal) {
+    reportMovementsBtn.addEventListener("click", () => {
+      if (typeof reportsModal !== "undefined" && reportsModal) {
+        reportsModal.classList.add("hidden");
+      }
+      if (movementsSearchInput) movementsSearchInput.value = "";
+      renderMovementsReportList();
+      openModalWithHistory(reportMovementsModal, "report-movements-modal");
+    });
+  }
+
+  if (closeReportMovementsModalBtn) {
+    closeReportMovementsModalBtn.addEventListener("click", () => {
+      closeModalWithHistory();
+    });
+  }
+
+  if (movementsSearchInput) {
+    movementsSearchInput.addEventListener("input", renderMovementsReportList);
+  }
+
+  if (reportMovementsExportBtn) {
+    reportMovementsExportBtn.addEventListener("click", () => {
+      const movData = buildMovementsData();
+      if (!movData || movData.length === 0) {
+        showToast("No movements data to export", "error");
+        return;
+      }
+      let csvContent = "data:text/csv;charset=utf-8,";
+      csvContent += "Asset ID,Name,Assigned To,Date Assigned,Date Returned\n";
+      const sortedInv = [...movData].sort((a, b) => (a.nombre || "").localeCompare(b.nombre || ""));
+      sortedInv.forEach((item) => {
+        const isCurrentlyAssigned = item.status === "IN USE" || item.status === "LOST / MAINTENANCE";
+        const assignedTo = isCurrentlyAssigned ? item.asignadoA : (item.lastAssignedTo || item.asignadoA || "N/A");
+        const dateAssigned = formatDateOnly(isCurrentlyAssigned ? item.fechaAsignacion : (item.lastDateAssigned || item.fechaAsignacion || "N/A"));
+        const dateReturned = formatDateOnly(isCurrentlyAssigned ? "" : (item.lastDateReturned || item.fechaRetorno || "N/A"));
+
+        const row = [
+          item.id,
+          `"${(item.nombre || "").replace(/"/g, '""')}"`,
+          `"${(assignedTo || "").replace(" (DAMAGED)", "").replace(" (MISSING)", "").replace(/"/g, '""')}"`,
+          `"${(dateAssigned || "").replace(/"/g, '""')}"`,
+          `"${(dateReturned || "").replace(/"/g, '""')}"`
+        ].join(",");
+        csvContent += row + "\r\n";
+      });
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `Movements_Report_${new Date().toISOString().split("T")[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast("Export Successful");
+    });
+  }
+
+  if (reportMovementsPrintBtn) {
+    reportMovementsPrintBtn.addEventListener("click", () => {
+      const movData = buildMovementsData();
+      if (!movData || movData.length === 0) {
+        showToast("No movements data to export", "error");
+        return;
+      }
+      const printContainer = document.createElement("div");
+      printContainer.id = "print-container";
+      const dateStr = new Date().toLocaleDateString();
+
+      let tableHtml = `
+           <div class="print-header">
+               <h2>Movements Report</h2>
+               <p>Generated on ${dateStr}</p>
+           </div>
+           <table class="print-table">
+               <thead>
+                   <tr>
+                       <th>Asset ID</th>
+                       <th>Name</th>
+                       <th>Assigned To</th>
+                       <th>Date Assigned</th>
+                       <th>Date Returned</th>
+                   </tr>
+               </thead>
+               <tbody>
+       `;
+      const sortedInv = [...movData].sort((a, b) => (a.nombre || "").localeCompare(b.nombre || ""));
+      sortedInv.forEach((item) => {
+        const isCurrentlyAssigned = item.status === "IN USE" || item.status === "LOST / MAINTENANCE";
+        const assignedTo = isCurrentlyAssigned ? item.asignadoA : (item.lastAssignedTo || item.asignadoA || "N/A");
+        const dateAssigned = formatDateOnly(isCurrentlyAssigned ? item.fechaAsignacion : (item.lastDateAssigned || item.fechaAsignacion || "N/A"));
+        const dateReturned = formatDateOnly(isCurrentlyAssigned ? "" : (item.lastDateReturned || item.fechaRetorno || "N/A"));
+
+        tableHtml += `
+               <tr>
+                   <td>${escapeHtml(String(item.id))}</td>
+                   <td>${escapeHtml(item.nombre)}</td>
+                   <td>${escapeHtml(assignedTo.replace(" (DAMAGED)", "").replace(" (MISSING)", ""))}</td>
+                   <td>${escapeHtml(dateAssigned)}</td>
+                   <td>${escapeHtml(dateReturned)}</td>
+               </tr>
+           `;
+      });
+      tableHtml += '</tbody></table>';
+      printContainer.innerHTML = tableHtml;
+      document.body.appendChild(printContainer);
+
+      window.print();
+
+      setTimeout(() => {
+        const pc = document.getElementById("print-container");
+        if (pc) pc.remove();
+      }, 1000);
+    });
+  }
+
+
+  // Accountability & Risk Report Logic
+  const reportRiskBtn = document.getElementById("report-risk-btn");
+  const reportRiskModal = document.getElementById("report-risk-modal");
+  const closeReportRiskModalBtn = document.getElementById("close-report-risk-modal");
+  const riskListContainer = document.getElementById("risk-list");
+  const riskSearchInput = document.getElementById("risk-search-input");
+  const riskHighestIncidents = document.getElementById("risk-highest-incidents");
+  const riskTopHolder = document.getElementById("risk-top-holder");
+  const riskPrintBtn = document.getElementById("risk-print-btn");
+  const riskExportBtn = document.getElementById("risk-export-btn");
+  const riskBackBtn = document.getElementById("risk-back-btn");
+
+  let riskDataCache = [];
+
+  const renderRiskReport = (searchTerm = "") => {
+    if (!riskListContainer) return;
+    riskListContainer.innerHTML = "";
+
+    // Calculate risk metrics
+    const empDataMap = {};
+    if (empleados) {
+      empleados.forEach(emp => {
+        empDataMap[emp.name] = { emp, inUse: 0, lost: 0, damaged: 0, missing: 0, totalAssigned: 0, items: [] };
+      });
+    }
+
+    if (inventario) {
+      inventario.forEach(item => {
+        if (item.status === "IN USE" || item.status === "LOST / MAINTENANCE") {
+          const assigned = (item.asignadoA || "").trim();
+          const cleanAssigned = assigned.split("(")[0].trim();
+          if (cleanAssigned && cleanAssigned !== "NONE") {
+            if (!empDataMap[cleanAssigned]) {
+              empDataMap[cleanAssigned] = { emp: { name: cleanAssigned, id: "N/A" }, inUse: 0, lost: 0, damaged: 0, missing: 0, totalAssigned: 0, items: [] };
+            }
+            empDataMap[cleanAssigned].totalAssigned++;
+            empDataMap[cleanAssigned].items.push(item);
+            if (item.status === "IN USE") {
+              empDataMap[cleanAssigned].inUse++;
+            } else if (item.status === "LOST / MAINTENANCE") {
+              empDataMap[cleanAssigned].lost++;
+              if (item.condition === "DAMAGED") {
+                empDataMap[cleanAssigned].damaged++;
+              } else if (item.condition === "MISSING") {
+                empDataMap[cleanAssigned].missing++;
+              }
+            }
+          }
+        }
+      });
+    }
+
+    riskDataCache = Object.values(empDataMap)
+      .filter(data => data.totalAssigned > 0)
+      .sort((a, b) => b.totalAssigned - a.totalAssigned);
+
+    let highestIncidentsAmt = 0;
+    let highestIncidentsName = "-";
+    let topHolderAmt = 0;
+    let topHolderName = "-";
+
+    riskDataCache.forEach(data => {
+      if (data.lost > highestIncidentsAmt) {
+        highestIncidentsAmt = data.lost;
+        highestIncidentsName = data.emp.name;
+      }
+      if (data.totalAssigned > topHolderAmt) {
+        topHolderAmt = data.totalAssigned;
+        topHolderName = data.emp.name;
+      }
+    });
+
+    if (riskHighestIncidents) riskHighestIncidents.textContent = highestIncidentsAmt > 0 ? `${highestIncidentsName} (${highestIncidentsAmt})` : "None";
+    if (riskTopHolder) riskTopHolder.textContent = topHolderAmt > 0 ? `${topHolderName} (${topHolderAmt})` : "None";
+
+    const filtered = riskDataCache.filter(d =>
+      d.emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(d.emp.id).toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    if (filtered.length === 0) {
+      riskListContainer.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:1.5rem; width:100%; font-size:0.85rem;">No assets currently assigned.</div>';
+      return;
+    }
+
+    filtered.forEach(data => {
+      const row = document.createElement("div");
+      row.className = "inventory-list-item";
+      row.style.cursor = "default";
+      row.style.flexDirection = "column";
+      row.style.alignItems = "stretch";
+
+      let statusRowHtml = `
+         <div style="display:flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; width: 100%;">
+             <span class="tile-badge" style="position:static; transform:none; background:var(--warning); color: #000; font-size:0.75rem; padding:3px 8px; font-weight: 800; border-radius: 6px;">${data.inUse} Active</span>
+             ${data.damaged > 0 ? `<span class="tile-badge" style="position:static; transform:none; background:var(--danger); color: white; font-size:0.75rem; padding:3px 8px; font-weight: 800; border-radius: 6px;">${data.damaged} Damaged</span>` : ''}
+             ${data.missing > 0 ? `<span class="tile-badge" style="position:static; transform:none; background:#8b0000; color: white; font-size:0.75rem; padding:3px 8px; font-weight: 800; border-radius: 6px;">${data.missing} Missing</span>` : ''}
+         </div>
+      `;
+
+      let notesToggleHtml = "";
+      let issuesHtml = "";
+      const issueItems = data.items.filter(item => item.status === "LOST / MAINTENANCE");
+      if (issueItems.length > 0) {
+        const toggleId = "risk-notes-" + Math.random().toString(36).substring(2, 9);
+        notesToggleHtml = `
+          <div style="display: flex; justify-content: center; margin-top: 12px; width: 100%; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 8px;">
+            <button onclick="document.getElementById('${toggleId}').classList.toggle('hidden')" style="background: rgba(255,255,255,0.08); border: 1px solid var(--border); border-radius: 50%; width: 34px; height: 34px; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s;" title="Show Incident Notes">
+              <i class="ph ph-notebook" style="font-size: 1.1rem;"></i>
+            </button>
+          </div>
+        `;
+
+        issuesHtml = `<div id="${toggleId}" class="hidden" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); width: 100%;">`;
+        issueItems.forEach(item => {
+          const cond = item.condition || "UNKNOWN";
+          const note = item.incidentNote || "No note provided.";
+          issuesHtml += `<div style="font-size: 0.8rem; margin-bottom: 6px; padding-left: 8px; border-left: 2px solid ${cond === 'MISSING' ? '#8b0000' : 'var(--danger)'};">
+            <div style="font-weight: 600; color: #fff;">[${escapeHtml(String(item.id))}] ${escapeHtml(item.nombre)} <span style="opacity:0.7; font-size: 0.7rem;">(${escapeHtml(cond)})</span></div>
+            <div style="color: var(--text-muted); font-size: 0.75rem; font-style: italic; margin-top: 2px;">"${escapeHtml(note)}"</div>
+          </div>`;
+        });
+        issuesHtml += `</div>`;
+      }
+
+      row.innerHTML = `
+        <div style="display:flex; justify-content: space-between; align-items:center; width: 100%;">
+            <div class="employee-list-info" style="flex:1;">
+                <span class="emp-name" style="font-size: 1rem;">${escapeHtml(data.emp.name)}</span>
+                <span class="emp-phone">ID: ${escapeHtml(String(data.emp.id))}</span>
+            </div>
+            <div style="font-size: 1.2rem; font-weight: 800; color: white;">${data.totalAssigned}</div>
+        </div>
+        ${statusRowHtml}
+        ${notesToggleHtml}
+        ${issuesHtml}
+      `;
+      riskListContainer.appendChild(row);
+    });
+  };
+
+  if (reportRiskBtn && reportRiskModal) {
+    reportRiskBtn.addEventListener("click", () => {
+      if (typeof reportsModal !== "undefined" && reportsModal) {
+        reportsModal.classList.add("hidden");
+      }
+      if (riskSearchInput) riskSearchInput.value = "";
+      renderRiskReport();
+      openModalWithHistory(reportRiskModal, "report-risk-modal");
+    });
+  }
+
+  if (closeReportRiskModalBtn) {
+    closeReportRiskModalBtn.addEventListener("click", () => {
+      closeModalWithHistory();
+    });
+  }
+
+  if (riskBackBtn) {
+    riskBackBtn.addEventListener("click", () => {
+      closeModalWithHistory();
+    });
+  }
+
+  if (riskSearchInput) {
+    riskSearchInput.addEventListener("input", (e) => {
+      renderRiskReport(e.target.value);
+    });
+  }
+
+  if (riskExportBtn) {
+    riskExportBtn.addEventListener("click", () => {
+      if (riskDataCache.length === 0) {
+        showToast("No data to export", "error");
+        return;
+      }
+      let csvContent = "data:text/csv;charset=utf-8,";
+      csvContent += "Employee Name,Badge ID,Total Assigned,Active Devices,Damaged,Missing,Incident Notes\n";
+      riskDataCache.forEach(d => {
+        const notes = d.items.filter(i => i.status === "LOST / MAINTENANCE").map(i => `[${i.id}] ${i.nombre} (${i.condition || "UNKNOWN"}): ${i.incidentNote || "None"}`).join(" | ");
+        const row = [
+          `"${(d.emp.name || "").replace(/"/g, '""')}"`,
+          d.emp.id,
+          d.totalAssigned,
+          d.inUse,
+          d.damaged,
+          d.missing,
+          `"${notes.replace(/"/g, '""')}"`
+        ].join(",");
+        csvContent += row + "\r\n";
+      });
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `Risk_Report_${new Date().toISOString().split("T")[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast("Export Successful");
+    });
+  }
+
+  if (riskPrintBtn) {
+    riskPrintBtn.addEventListener("click", () => {
+      const printContainer = document.createElement("div");
+      printContainer.id = "print-container";
+      const dateStr = new Date().toLocaleDateString();
+
+      let tableHtml = `
+               <div class="print-header">
+                   <h2>Accountability & Risk Report</h2>
+                   <p>Generated on ${dateStr}</p>
+               </div>
+               <table class="print-table">
+                   <thead>
+                       <tr>
+                           <th>Employee Name</th>
+                           <th>ID</th>
+                           <th>Total Assigned</th>
+                           <th>Active</th>
+                           <th>Damaged</th>
+                           <th>Missing</th>
+                           <th>Incident Notes</th>
+                       </tr>
+                   </thead>
+                   <tbody>
+           `;
+      riskDataCache.forEach((d) => {
+        const notesHtml = d.items.filter(i => i.status === "LOST / MAINTENANCE")
+          .map(i => `<b>[${escapeHtml(String(i.id))}] ${escapeHtml(i.nombre)}</b> (${escapeHtml(i.condition || "UNKNOWN")}): <i>${escapeHtml(i.incidentNote || "None")}</i>`)
+          .join("<br/>");
+        tableHtml += `
+                     <tr>
+                         <td>${escapeHtml(d.emp.name)}</td>
+                         <td>${escapeHtml(String(d.emp.id))}</td>
+                         <td>${d.totalAssigned}</td>
+                         <td>${d.inUse}</td>
+                         <td>${d.damaged}</td>
+                         <td>${d.missing}</td>
+                         <td style="font-size: 0.8rem;">${notesHtml}</td>
+                     </tr>
+                 `;
+      });
       tableHtml += '</tbody></table>';
       printContainer.innerHTML = tableHtml;
       document.body.appendChild(printContainer);

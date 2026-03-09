@@ -844,6 +844,7 @@ input:focus {
   #employee-modal .modal-content.large-modal,
   #inventory-mgr-modal .modal-content.large-modal,
   #report-emp-list-modal .modal-content.large-modal,
+  #report-risk-modal .modal-content.large-modal,
   #report-issue-modal .modal-content {
     width: 100% !important;
     max-width: none !important;
@@ -862,6 +863,7 @@ input:focus {
   #employee-modal .modal-body,
   #inventory-mgr-modal .modal-body,
   #report-emp-list-modal .modal-body,
+  #report-risk-modal .modal-body,
   #report-issue-modal .modal-body {
     padding: 0 0.5rem 1rem 0.5rem !important;
   }
@@ -953,6 +955,37 @@ input:focus {
     right: 1.5rem;
     width: 56px;
     height: 56px;
+  }
+
+  /* Specific Adjustments for Accountability & Risk Modal */
+  #report-risk-modal .emp-name {
+    font-size: 0.9rem !important;
+  }
+
+  #report-risk-modal .emp-phone {
+    font-size: 0.75rem !important;
+  }
+
+  #report-risk-modal .tile-badge {
+    font-size: 0.6rem !important;
+    padding: 2px 5px !important;
+  }
+
+  #report-risk-modal .stat-card {
+    padding: 0.5rem !important;
+  }
+
+  #report-risk-modal #risk-highest-incidents,
+  #report-risk-modal #risk-top-holder {
+    font-size: 0.9rem !important;
+  }
+
+  #report-risk-modal [style*="Incident Notes"] {
+    font-size: 0.7rem !important;
+  }
+
+  #report-risk-modal [style*="border-left"] {
+    font-size: 0.7rem !important;
   }
 }
 

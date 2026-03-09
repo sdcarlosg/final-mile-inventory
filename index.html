@@ -92,7 +92,7 @@
                     <span>Quick Statistics</span>
                 </button>
 
-                <button class="dash-tile" id="dash-report-issue" title="Report broken or missing items">
+                <button class="dash-tile" id="dash-report-issue" title="Report damaged or missing items">
                     <i class="ph ph-warning-circle" style="color: var(--danger)"></i>
                     <span>Report Issue</span>
                 </button>
@@ -838,6 +838,36 @@
                     </div>
                 </button>
 
+                <!-- Accountability & Risk Report -->
+                <button id="report-risk-btn" class="dashboard-action-btn" style="
+              display: flex;
+              align-items: center;
+              gap: 15px;
+              padding: 1.2rem;
+              background: var(--glass);
+              border: 1px solid var(--border);
+              border-radius: 16px;
+              cursor: pointer;
+              transition: all 0.2s;
+              color: white;
+            ">
+                    <div style="
+                background: rgba(239, 68, 68, 0.2);
+                padding: 10px;
+                border-radius: 50%;
+              ">
+                        <i class="ph ph-shield-warning" style="color: var(--danger); font-size: 1.5rem"></i>
+                    </div>
+                    <div style="text-align: left; flex: 1">
+                        <div style="font-weight: 600; font-size: 1.1rem">
+                            Accountability & Risk
+                        </div>
+                        <div style="font-size: 0.85rem; color: var(--text-muted)">
+                            Track asset responsibility and incidents.
+                        </div>
+                    </div>
+                </button>
+
                 <!-- Export CSV -->
                 <button id="report-export-btn" class="dashboard-action-btn" style="
               display: flex;
@@ -864,6 +894,36 @@
                         </div>
                         <div style="font-size: 0.85rem; color: var(--text-muted)">
                             Download full inventory to Excel/CSV.
+                        </div>
+                    </div>
+                </button>
+
+                <!-- Movements Report -->
+                <button id="report-movements-btn" class="dashboard-action-btn" style="
+              display: flex;
+              align-items: center;
+              gap: 15px;
+              padding: 1.2rem;
+              background: var(--glass);
+              border: 1px solid var(--border);
+              border-radius: 16px;
+              cursor: pointer;
+              transition: all 0.2s;
+              color: white;
+            ">
+                    <div style="
+                background: rgba(34, 197, 94, 0.2);
+                padding: 10px;
+                border-radius: 50%;
+              ">
+                        <i class="ph ph-arrows-left-right" style="color: var(--success); font-size: 1.5rem"></i>
+                    </div>
+                    <div style="text-align: left; flex: 1">
+                        <div style="font-weight: 600; font-size: 1.1rem">
+                            Movements
+                        </div>
+                        <div style="font-size: 0.85rem; color: var(--text-muted)">
+                            View asset assignment history.
                         </div>
                     </div>
                 </button>
@@ -897,6 +957,85 @@
                         </div>
                     </div>
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Accountability & Risk Report -->
+    <div id="report-risk-modal" class="modal-overlay hidden">
+        <div class="modal-content glass-panel large-modal" style="
+          height: 90vh;
+          max-height: 800px;
+          display: flex;
+          flex-direction: column;
+          background: var(--bg-card);
+        ">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 10px">
+                    <i class="ph ph-shield-warning" style="color: var(--danger); font-size: 1.5rem"></i>
+                    <h3>Accountability & Risk</h3>
+                </div>
+                <button id="close-report-risk-modal" class="btn-icon">
+                    <i class="ph ph-x"></i>
+                </button>
+            </div>
+            <div class="modal-body" style="
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding-top: 1rem;
+            overflow: hidden;
+          ">
+                <!-- Summary Stats -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1rem;">
+                    <div class="stat-card"
+                        style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); padding: 1rem; border-radius: 12px; text-align: center;">
+                        <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Most
+                            Incidents</div>
+                        <div id="risk-highest-incidents"
+                            style="font-size: 1.1rem; font-weight: 700; color: var(--danger); margin-top: 5px;">-</div>
+                    </div>
+                    <div class="stat-card"
+                        style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); padding: 1rem; border-radius: 12px; text-align: center;">
+                        <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Top Holder
+                        </div>
+                        <div id="risk-top-holder"
+                            style="font-size: 1.1rem; font-weight: 700; color: #f59e0b; margin-top: 5px;">-</div>
+                    </div>
+                </div>
+
+                <!-- Search / Filter -->
+                <div class="search-container" style="margin-bottom: 1rem;">
+                    <i class="ph ph-magnifying-glass search-icon"></i>
+                    <input type="text" id="risk-search-input" placeholder="Search employees..." autocomplete="off" />
+                </div>
+
+                <div id="risk-list" class="inventory-grid" style="flex: 1; overflow-y: auto; padding-right: 5px">
+                    <!-- Employees risk list will render here -->
+                </div>
+            </div>
+            <!-- Export / Print Controls -->
+            <div class="modal-actions"
+                style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; padding-left: 0; padding-right: 0;">
+                <button id="risk-back-btn" class="btn-icon" style="
+                  border: 1px solid var(--border);
+                  border-radius: 12px;
+                  width: 44px;
+                  height: 44px;
+                  background: var(--glass);
+                ">
+                    <i class="ph ph-caret-left" style="font-size: 1.25rem"></i>
+                </button>
+                <div style="display: flex; gap: 10px;">
+                    <button type="button" class="btn-secondary" id="risk-print-btn"
+                        style="padding: 0.5rem 1rem; width: auto; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                        <i class="ph ph-printer"></i> Print
+                    </button>
+                    <button type="button" class="btn-primary" id="risk-export-btn"
+                        style="padding: 0.5rem 1rem; width: auto; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                        <i class="ph ph-download-simple"></i> Export
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -1081,6 +1220,58 @@
                 <div class="employee-list-container" style="flex: 1">
                     <div id="report-emp-grid-container" class="inventory-grid">
                         <!-- Employee list items specifically for this report will render here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Movements Report -->
+    <div id="report-movements-modal" class="modal-overlay hidden">
+        <div class="modal-content glass-panel large-modal" style="
+          height: 90vh;
+          max-height: 800px;
+          display: flex;
+          flex-direction: column;
+          background: var(--bg-card);
+        ">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 10px; flex: 1;">
+                    <i class="ph ph-arrows-left-right" style="color: var(--success); font-size: 1.5rem"></i>
+                    <h3>Movements Report</h3>
+                </div>
+                <button id="close-report-movements-modal" class="btn-icon">
+                    <i class="ph ph-x"></i>
+                </button>
+                <div class="header-action-wrapper"
+                    style="display: flex; gap: 10px; width: 100%; justify-content: flex-end;">
+                    <button id="report-movements-export-btn" class="btn-primary"
+                        style="font-size: 0.85rem; padding: 0.5rem 1rem; width: auto; display: flex; align-items: center; gap: 5px;">
+                        <i class="ph ph-download-simple"></i> Export
+                    </button>
+                    <button id="report-movements-print-btn" class="btn-primary"
+                        style="font-size: 0.85rem; padding: 0.5rem 1rem; width: auto; background: var(--purple); border-color: var(--purple); display: flex; align-items: center; gap: 5px;">
+                        <i class="ph ph-printer"></i> Print
+                    </button>
+                </div>
+            </div>
+            <div class="modal-body" style="
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            padding-bottom: 20px;
+          ">
+                <!-- Search / Filter -->
+                <div class="search-container" style="margin-bottom: 1rem;">
+                    <i class="ph ph-magnifying-glass search-icon"></i>
+                    <input type="text" id="movements-search-input" placeholder="Search by asset or employee..."
+                        autocomplete="off" />
+                </div>
+
+                <div class="employee-list-container" style="flex: 1">
+                    <div id="report-movements-grid-container" class="inventory-grid">
+                        <!-- Movements list items will render here -->
                     </div>
                 </div>
             </div>
