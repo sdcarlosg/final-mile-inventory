@@ -1226,6 +1226,8 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         inventario[itemIndex].fechaAsignacion = new Date().toLocaleDateString();
         inventario[itemIndex].fechaRetorno = "";
+        inventario[itemIndex].condition = "";
+        inventario[itemIndex].incidentNote = "";
       } else if (
         newAssignedTo.toUpperCase() === "NONE" &&
         inventario[itemIndex].asignadoA.toUpperCase() !== "NONE"
@@ -1236,6 +1238,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
         inventario[itemIndex].fechaRetorno = new Date().toLocaleDateString();
         inventario[itemIndex].fechaAsignacion = "";
+        inventario[itemIndex].condition = "";
+        inventario[itemIndex].incidentNote = "";
       }
       inventario[itemIndex].nombre = editNameInput.value;
       inventario[itemIndex].asignadoA = newAssignedTo;
@@ -2883,6 +2887,8 @@ document.addEventListener("DOMContentLoaded", () => {
         inventario[idx].status = "IN USE";
         inventario[idx].fechaAsignacion = new Date().toLocaleDateString();
         inventario[idx].fechaRetorno = "";
+        inventario[idx].condition = "";
+        inventario[idx].incidentNote = "";
       }
     });
 
@@ -3481,6 +3487,8 @@ document.addEventListener("DOMContentLoaded", () => {
           inventario[idx].status = "AVAILABLE";
           inventario[idx].fechaRetorno = new Date().toLocaleDateString();
           inventario[idx].fechaAsignacion = "";
+          inventario[idx].condition = "";
+          inventario[idx].incidentNote = "";
         }
       });
 
