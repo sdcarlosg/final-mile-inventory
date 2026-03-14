@@ -505,8 +505,13 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   window.loadFromGoogleSheets = async (isManualRefresh = false) => {
-    // Hide dropdown menu if open
-    if (moreOptionsMenu) moreOptionsMenu.classList.add("hidden");
+    // Hide dropdown and sync history
+    if (moreOptionsMenu && !moreOptionsMenu.classList.contains("hidden")) {
+      moreOptionsMenu.classList.add("hidden");
+      if (history.state?.modal === "more-options") {
+        history.back();
+      }
+    }
 
     if (!googleSheetsUrl) {
       if (isManualRefresh) showToast("Configure Google Sheets first");
@@ -719,13 +724,21 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const openModalWithHistory = (modalElement, stateId) => {
-    // Automatically hide 'more-options' menu when opening any other modal
-    if (stateId !== "more-options" && moreOptionsMenu) {
+    // If the 'More Options' menu is open, we REPLACE its state with the new modal.
+    // This prevents the menu from re-appearing when the user closes the modal (back button).
+    const isMenuOpen = moreOptionsMenu && !moreOptionsMenu.classList.contains("hidden");
+
+    if (isMenuOpen && stateId !== "more-options") {
       moreOptionsMenu.classList.add("hidden");
     }
 
     if (history.state?.modal !== stateId) {
-      history.pushState({ modal: stateId }, null, "");
+      if (stateId !== "more-options" && history.state?.modal === "more-options") {
+        // Selection made from menu: Replace 'more-options' state to skip it on back navigation
+        history.replaceState({ modal: stateId }, null, "");
+      } else {
+        history.pushState({ modal: stateId }, null, "");
+      }
     }
     modalElement.classList.remove("hidden");
   };
@@ -2367,8 +2380,6 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   window.abrirRemindersModal = () => {
-    // Hide dropdown menu
-    if (moreOptionsMenu) moreOptionsMenu.classList.add("hidden");
     stopAllScanners();
 
     const damaged = inventario.filter(i => i.condition === "DAMAGED");
@@ -3906,8 +3917,6 @@ document.addEventListener("DOMContentLoaded", () => {
   if (reportsBtn) {
     reportsBtn.addEventListener("click", (e) => {
       e.preventDefault();
-      const moreOptionsMenu = document.getElementById("more-options-menu");
-      if (moreOptionsMenu) moreOptionsMenu.classList.add("hidden");
       openModalWithHistory(reportsModal, "reports-modal");
     });
   }
