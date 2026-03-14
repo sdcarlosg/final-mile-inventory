@@ -25,6 +25,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const addEmployeeModal = document.getElementById("add-employee-modal");
   const reportsModal = document.getElementById("reports-modal");
   const statsModal = document.getElementById("stats-modal");
+  const remindersModal = document.getElementById("reminders-modal");
+  const closeRemindersModalBtn = document.getElementById("close-reminders-modal");
+  const remindersDamagedList = document.getElementById("reminders-damaged-list");
+  const remindersOverdueList = document.getElementById("reminders-overdue-list");
 
   const closeModalBtn = document.getElementById("close-modal");
   const cancelEditBtn = document.getElementById("cancel-edit");
@@ -230,14 +234,28 @@ document.addEventListener("DOMContentLoaded", () => {
   if (moreOptionsBtn && moreOptionsMenu) {
     moreOptionsBtn.addEventListener("click", (e) => {
       e.stopPropagation();
-      moreOptionsMenu.classList.toggle("hidden");
+      if (moreOptionsMenu.classList.contains("hidden")) {
+        openModalWithHistory(moreOptionsMenu, "more-options");
+      } else {
+        closeModalWithHistory();
+      }
     });
+
+    // Close menu when clicking outside
     document.addEventListener("click", (e) => {
       if (
+        !moreOptionsMenu.classList.contains("hidden") &&
         !moreOptionsMenu.contains(e.target) &&
         !moreOptionsBtn.contains(e.target)
       ) {
-        moreOptionsMenu.classList.add("hidden");
+        // If it was open through history, we might want to pop state,
+        // but for click-away simple hiding is usually okay or just let popstate handle it.
+        // To be safe and consistent with history:
+        if (history.state?.modal === "more-options") {
+          history.back();
+        } else {
+          moreOptionsMenu.classList.add("hidden");
+        }
       }
     });
   }
@@ -396,8 +414,21 @@ document.addEventListener("DOMContentLoaded", () => {
       (i) => i.status === "AVAILABLE",
     ).length;
     if (badgeAvailable) badgeAvailable.textContent = availableCount;
-    // Reminders placeholder logic
-    if (badgeAlerts) badgeAlerts.textContent = "0";
+
+    const damagedCount = inventario.filter(i => i.condition === "DAMAGED").length;
+    let overdueCount = 0;
+    const fifteenDaysInMs = 15 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    inventario.forEach(i => {
+      if ((i.status === "IN USE" || i.status === "IN-USED") && i.fechaAsignacion) {
+        const assignDateMs = new Date(i.fechaAsignacion).getTime();
+        if (!isNaN(assignDateMs) && (now - assignDateMs > fifteenDaysInMs)) {
+          overdueCount++;
+        }
+      }
+    });
+
+    if (badgeAlerts) badgeAlerts.textContent = (damagedCount + overdueCount).toString();
   };
 
   const dashReturn = document.getElementById("dash-return");
@@ -505,6 +536,9 @@ document.addEventListener("DOMContentLoaded", () => {
           status: (item.status || "AVAILABLE").replace("IN-USED", "IN USE"),
           fechaAsignacion: item.fechaAsignacion || "",
           fechaRetorno: item.fechaRetorno || "",
+          lastAssignedTo: item.lastAssignedTo || "",
+          lastDateAssigned: item.lastDateAssigned || "",
+          lastDateReturned: item.lastDateReturned || ""
         }));
       }
       if (result.employees) {
@@ -709,13 +743,17 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("report-emp-list-modal"),
         document.getElementById("report-risk-modal"),
         document.getElementById("report-movements-modal"),
-      ];
+        remindersModal,
+        moreOptionsMenu,
+      ].filter((m) => m !== null && m !== undefined);
+
       allModals.forEach((m) => {
-        if (m) m.classList.add("hidden");
+        m.classList.add("hidden");
       });
       stopAllScanners();
     }
   };
+
   window.addEventListener("popstate", (event) => {
     const targetState = history.state?.modal || "home";
     const modals = [
@@ -735,7 +773,9 @@ document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("report-emp-list-modal"),
       document.getElementById("report-risk-modal"),
       document.getElementById("report-movements-modal"),
-    ];
+      remindersModal,
+      moreOptionsMenu,
+    ].filter((m) => m !== null && m !== undefined);
 
     if (
       [
@@ -748,36 +788,43 @@ document.addEventListener("DOMContentLoaded", () => {
         "report-emp-list-modal",
         "report-risk-modal",
         "report-movements-modal",
+        "reminders-modal",
+        "more-options",
       ].includes(targetState)
     ) {
       modals.forEach((m) => m.classList.add("hidden"));
-      if (targetState === "employee-modal")
+      if (targetState === "employee-modal" && employeeModal)
         employeeModal.classList.remove("hidden");
-      else if (targetState === "inventory-mgr-modal")
+      else if (targetState === "inventory-mgr-modal" && inventoryMgrModal)
         inventoryMgrModal.classList.remove("hidden");
-      else if (targetState === "report-issue-modal")
+      else if (targetState === "report-issue-modal" && reportIssueModal)
         reportIssueModal.classList.remove("hidden");
-      else if (targetState === "reports-modal")
+      else if (targetState === "reports-modal" && reportsModal)
         reportsModal.classList.remove("hidden");
+      else if (targetState === "reminders-modal" && remindersModal)
+        remindersModal.classList.remove("hidden");
+      else if (targetState === "more-options" && moreOptionsMenu)
+        moreOptionsMenu.classList.remove("hidden");
       else if (targetState === "report-emp-list-modal") {
-        const modal = document.getElementById("report-emp-list-modal");
-        if (modal) modal.classList.remove("hidden");
+        const m = document.getElementById("report-emp-list-modal");
+        if (m) m.classList.remove("hidden");
       } else if (targetState === "report-risk-modal") {
-        const modal = document.getElementById("report-risk-modal");
-        if (modal) modal.classList.remove("hidden");
+        const m = document.getElementById("report-risk-modal");
+        if (m) m.classList.remove("hidden");
       } else if (targetState === "report-movements-modal") {
-        const modal = document.getElementById("report-movements-modal");
-        if (modal) modal.classList.remove("hidden");
-      } else if (targetState === "stats-modal")
+        const m = document.getElementById("report-movements-modal");
+        if (m) m.classList.remove("hidden");
+      } else if (targetState === "stats-modal" && statsModal)
         statsModal.classList.remove("hidden");
-      else if (targetState === "assign-wizard") {
+      else if (targetState === "assign-wizard" && assignWizardModal) {
         assignWizardModal.classList.remove("hidden");
-        goToWizardStep1(false); // No push state since we are already popping/navigating
-      } else if (targetState === "assign-wizard-step2") {
+        goToWizardStep1(false);
+      } else if (targetState === "assign-wizard-step2" && assignWizardModal) {
         assignWizardModal.classList.remove("hidden");
-        // goToWizardStep2 is handle by selectWizardEmployee but we need a direct UI toggle for popstate
-        wizardStep1.classList.add("hidden");
-        wizardStep2.classList.remove("hidden");
+        if (typeof wizardStep1 !== "undefined")
+          wizardStep1.classList.add("hidden");
+        if (typeof wizardStep2 !== "undefined")
+          wizardStep2.classList.remove("hidden");
       }
       stopEmployeeScanner();
       stopWizardScanner();
@@ -785,20 +832,24 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    if (["return-wizard"].includes(targetState)) {
+    if (["return-wizard"].includes(targetState) && returnWizardModal) {
       modals.forEach((m) => m.classList.add("hidden"));
       returnWizardModal.classList.remove("hidden");
-      goToReturnStep1(false);
+      if (typeof goToReturnStep1 === "function") goToReturnStep1(false);
       return;
     }
 
-    if (["return-wizard-step2"].includes(targetState)) {
+    if (
+      ["return-wizard-step2"].includes(targetState) &&
+      returnWizardModal
+    ) {
       modals.forEach((m) => m.classList.add("hidden"));
       returnWizardModal.classList.remove("hidden");
-      // We need to show step 2 container manually if popping to it
-      returnInfoStep.classList.add("hidden");
-      returnItemStep.classList.remove("hidden");
-      stopReturnScanner();
+      if (typeof returnInfoStep !== "undefined")
+        returnInfoStep.classList.add("hidden");
+      if (typeof returnItemStep !== "undefined")
+        returnItemStep.classList.remove("hidden");
+      if (typeof stopReturnScanner === "function") stopReturnScanner();
       return;
     }
 
@@ -2302,10 +2353,105 @@ document.addEventListener("DOMContentLoaded", () => {
       };
     }
     if (remindersBtn) {
-      remindersBtn.onclick = () => showToast("Reminders feature coming soon!");
+      remindersBtn.onclick = () => window.abrirRemindersModal();
     }
     updateDashboardSummary();
   };
+
+  window.abrirRemindersModal = () => {
+    stopAllScanners();
+
+    const damaged = inventario.filter(i => i.condition === "DAMAGED");
+
+    const overdue = [];
+    const fifteenDaysInMs = 15 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+
+    inventario.forEach(i => {
+      if (i.status === "IN USE" || i.status === "IN-USED") {
+        if (i.fechaAsignacion) {
+          const assignDateMs = new Date(i.fechaAsignacion).getTime();
+          if (!isNaN(assignDateMs)) {
+            if (now - assignDateMs > fifteenDaysInMs) {
+              overdue.push(i);
+            }
+          }
+        }
+      }
+    });
+
+    if (remindersDamagedList) {
+      remindersDamagedList.innerHTML = "";
+      if (damaged.length === 0) {
+        remindersDamagedList.innerHTML = `<div class="empty-state"><i class="ph ph-check-circle" style="color: var(--success); font-size: 2rem; margin-bottom: 0.5rem;"></i><p>No damaged items!</p></div>`;
+      } else {
+        damaged.forEach(item => {
+          const div = document.createElement("div");
+          div.className = "inventory-list-item";
+          div.innerHTML = `
+              <div class="list-item-main">
+                  <div class="name-status-wrapper">
+                      <span class="item-name" style="color: var(--danger)">${escapeHtml(item.nombre)}</span>
+                      <span class="status-badge badge-alerts" style="font-size: 0.7rem; padding: 2px 6px;">${escapeHtml(item.id)}</span>
+                  </div>
+                  <button type="button" class="btn-text-primary" onclick="window.abrirModal('${item.id}')" style="font-size: 0.8rem; padding: 0.2rem 0.6rem;">
+                    Edit
+                  </button>
+              </div>
+              <div class="list-item-info">
+                  <span class="list-item-desc">${escapeHtml(item.descripcion || "No description")}</span>
+              </div>
+          `;
+          remindersDamagedList.appendChild(div);
+        });
+      }
+    }
+
+    if (remindersOverdueList) {
+      remindersOverdueList.innerHTML = "";
+      if (overdue.length === 0) {
+        remindersOverdueList.innerHTML = `<div class="empty-state"><i class="ph ph-check-circle" style="color: var(--success); font-size: 2rem; margin-bottom: 0.5rem;"></i><p>No overdue items!</p></div>`;
+      } else {
+        overdue.forEach(item => {
+          const assigneeName = (item.asignadoA || "").replace(" (DAMAGED)", "").replace(" (MISSING)", "").trim();
+          const emp = empleados.find(e => e.name === assigneeName);
+          const phone = emp ? emp.phone : "";
+          const smsBtnHtml = phone ? `<a href="sms:${phone}?body=Reminder:%20Please%20return%20the%20asset%20${encodeURIComponent(item.nombre)}%20(${encodeURIComponent(item.id)})%20assigned%20to%20you.%20Thank%20you!" class="btn-text-primary tooltip-container" style="display:inline-flex; align-items:center; gap:4px; font-size: 0.8rem; padding: 0.2rem 0.6rem; text-decoration: none;"><i class="ph ph-chat-teardrop-text"></i> SMS</a>` : '';
+
+          let formattedDate = item.fechaAsignacion || "";
+          if (typeof formattedDate === "string") {
+            formattedDate = formattedDate.split(/[\sT,]/)[0];
+          }
+
+          const div = document.createElement("div");
+          div.className = "inventory-list-item";
+          div.innerHTML = `
+              <div class="list-item-main">
+                  <div class="name-status-wrapper">
+                      <span class="item-name" style="color: var(--warning)">${escapeHtml(item.nombre)}</span>
+                      <span class="status-badge" style="background: rgba(251, 191, 36, 0.15); color: var(--warning); font-size: 0.7rem; padding: 2px 6px;">Assigned: ${escapeHtml(formattedDate)}</span>
+                  </div>
+                  <div style="display: flex; gap: 8px;">
+                      ${smsBtnHtml}
+                  </div>
+              </div>
+              <div class="list-item-assignee" style="border: none; padding-top: 0; margin-top: 5px;">
+                <i class="ph ph-user"></i> ${escapeHtml(assigneeName)}
+              </div>
+          `;
+          remindersOverdueList.appendChild(div);
+        });
+      }
+    }
+
+    if (badgeAlerts) badgeAlerts.textContent = (damaged.length + overdue.length).toString();
+
+    openModalWithHistory(remindersModal, "reminders-modal");
+  };
+
+  if (closeRemindersModalBtn) {
+    closeRemindersModalBtn.onclick = closeModalWithHistory;
+  }
 
   // --- Assignment Wizard Logic ---
   let wizardScanner = null;
@@ -4085,6 +4231,7 @@ document.addEventListener("DOMContentLoaded", () => {
       // Note: If the item is currently in use, show current assignment as movement, else last movement
       const isCurrentlyAssigned = item.status === "IN USE" || item.status === "LOST / MAINTENANCE";
       const assignedTo = isCurrentlyAssigned ? item.asignadoA : (item.lastAssignedTo || item.asignadoA || "N/A");
+      const previousAssignedTo = item.lastAssignedTo || "N/A";
       const dateAssigned = formatDateOnly(isCurrentlyAssigned ? item.fechaAsignacion : (item.lastDateAssigned || item.fechaAsignacion || "N/A"));
       const dateReturned = formatDateOnly(isCurrentlyAssigned ? "" : (item.lastDateReturned || item.fechaRetorno || "N/A"));
 
@@ -4102,8 +4249,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 <span class="tile-badge" style="position:static; transform:none; background:rgba(34, 197, 94, 0.2); color: var(--success); font-size:0.75rem; padding: 2px 8px; font-weight: bold;">Movement</span>
             </div>
             <div style="font-size: 0.85rem; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 5px;">
-                <div><span style="color:var(--text-muted);">Assigned To:</span><br/>${escapeHtml(assignedTo.replace(" (DAMAGED)", "").replace(" (MISSING)", ""))}</div>
-                <div><span style="color:var(--text-muted);">Status:</span><br/>${escapeHtml(item.status)}</div>
+                <div><span style="color:var(--text-muted);">Last checked out by:</span><br/>${escapeHtml(assignedTo.replace(" (DAMAGED)", "").replace(" (MISSING)", ""))}</div>
+                <div><span style="color:var(--text-muted);">Previous checked out by:</span><br/>${escapeHtml(previousAssignedTo.replace(" (DAMAGED)", "").replace(" (MISSING)", ""))}</div>
+                <div><span style="color:var(--text-muted);">Current status of the Asset:</span><br/>${escapeHtml(item.status)}</div>
                 <div><span style="color:var(--text-muted);">Date Assigned:</span><br/>${escapeHtml(dateAssigned)}</div>
                 <div><span style="color:var(--text-muted);">Date Returned:</span><br/>${escapeHtml(dateReturned)}</div>
             </div>
@@ -4142,11 +4290,12 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
       let csvContent = "data:text/csv;charset=utf-8,";
-      csvContent += "Asset ID,Name,Assigned To,Date Assigned,Date Returned\n";
+      csvContent += "Asset ID,Name,Last checked out by,Previous checked out by,Date Assigned,Date Returned\n";
       const sortedInv = [...movData].sort((a, b) => (a.nombre || "").localeCompare(b.nombre || ""));
       sortedInv.forEach((item) => {
         const isCurrentlyAssigned = item.status === "IN USE" || item.status === "LOST / MAINTENANCE";
         const assignedTo = isCurrentlyAssigned ? item.asignadoA : (item.lastAssignedTo || item.asignadoA || "N/A");
+        const previousAssignedTo = item.lastAssignedTo || "N/A";
         const dateAssigned = formatDateOnly(isCurrentlyAssigned ? item.fechaAsignacion : (item.lastDateAssigned || item.fechaAsignacion || "N/A"));
         const dateReturned = formatDateOnly(isCurrentlyAssigned ? "" : (item.lastDateReturned || item.fechaRetorno || "N/A"));
 
@@ -4154,6 +4303,7 @@ document.addEventListener("DOMContentLoaded", () => {
           item.id,
           `"${(item.nombre || "").replace(/"/g, '""')}"`,
           `"${(assignedTo || "").replace(" (DAMAGED)", "").replace(" (MISSING)", "").replace(/"/g, '""')}"`,
+          `"${(previousAssignedTo || "").replace(" (DAMAGED)", "").replace(" (MISSING)", "").replace(/"/g, '""')}"`,
           `"${(dateAssigned || "").replace(/"/g, '""')}"`,
           `"${(dateReturned || "").replace(/"/g, '""')}"`
         ].join(",");
@@ -4191,7 +4341,8 @@ document.addEventListener("DOMContentLoaded", () => {
                    <tr>
                        <th>Asset ID</th>
                        <th>Name</th>
-                       <th>Assigned To</th>
+                       <th>Last checked out by</th>
+                       <th>Previous checked out by</th>
                        <th>Date Assigned</th>
                        <th>Date Returned</th>
                    </tr>
@@ -4202,6 +4353,7 @@ document.addEventListener("DOMContentLoaded", () => {
       sortedInv.forEach((item) => {
         const isCurrentlyAssigned = item.status === "IN USE" || item.status === "LOST / MAINTENANCE";
         const assignedTo = isCurrentlyAssigned ? item.asignadoA : (item.lastAssignedTo || item.asignadoA || "N/A");
+        const previousAssignedTo = item.lastAssignedTo || "N/A";
         const dateAssigned = formatDateOnly(isCurrentlyAssigned ? item.fechaAsignacion : (item.lastDateAssigned || item.fechaAsignacion || "N/A"));
         const dateReturned = formatDateOnly(isCurrentlyAssigned ? "" : (item.lastDateReturned || item.fechaRetorno || "N/A"));
 
@@ -4210,6 +4362,7 @@ document.addEventListener("DOMContentLoaded", () => {
                    <td>${escapeHtml(String(item.id))}</td>
                    <td>${escapeHtml(item.nombre)}</td>
                    <td>${escapeHtml(assignedTo.replace(" (DAMAGED)", "").replace(" (MISSING)", ""))}</td>
+                   <td>${escapeHtml(previousAssignedTo.replace(" (DAMAGED)", "").replace(" (MISSING)", ""))}</td>
                    <td>${escapeHtml(dateAssigned)}</td>
                    <td>${escapeHtml(dateReturned)}</td>
                </tr>

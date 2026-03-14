@@ -72,9 +72,11 @@
                             <i class="ph ph-file-text" style="color: var(--teal)"></i>
                             <span>Reports</span>
                         </button>
-                        <button id="reminders-btn" class="dropdown-item">
+                        <button id="reminders-btn" class="dropdown-item" style="position: relative;">
                             <i class="ph ph-bell" style="color: var(--purple)"></i>
                             <span>Reminders</span>
+                            <span id="badge-alerts" class="tile-badge badge-alerts"
+                                style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 0.7rem; min-width: 20px; text-align: center; padding: 2px 4px;">0</span>
                         </button>
                     </div>
                 </div>
@@ -1272,6 +1274,58 @@
                 <div class="employee-list-container" style="flex: 1">
                     <div id="report-movements-grid-container" class="inventory-grid">
                         <!-- Movements list items will render here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Reminders -->
+    <div id="reminders-modal" class="modal-overlay hidden">
+        <div class="modal-content glass-panel large-modal" style="
+          height: 90vh;
+          max-height: 800px;
+          display: flex;
+          flex-direction: column;
+          background: var(--bg-card);
+        ">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 10px; flex: 1;">
+                    <i class="ph ph-bell-ringing" style="color: var(--purple); font-size: 1.5rem"></i>
+                    <h3>Reminders</h3>
+                </div>
+                <button id="close-reminders-modal" class="btn-icon">
+                    <i class="ph ph-x"></i>
+                </button>
+            </div>
+            <div class="modal-body" style="
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            padding-bottom: 20px;
+            gap: 1.5rem;
+          ">
+                <!-- Section 1: Damaged Items -->
+                <div class="reminders-section">
+                    <h4
+                        style="color: var(--danger); display: flex; align-items: center; gap: 8px; margin-bottom: 1rem;">
+                        <i class="ph ph-warning-circle"></i> Damaged Items Needing Review
+                    </h4>
+                    <div id="reminders-damaged-list" class="inventory-grid">
+                        <!-- Damaged items render here -->
+                    </div>
+                </div>
+
+                <!-- Section 2: Overdue Items -->
+                <div class="reminders-section"
+                    style="margin-top: 1rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+                    <h4
+                        style="color: var(--warning); display: flex; align-items: center; gap: 8px; margin-bottom: 1rem;">
+                        <i class="ph ph-clock"></i> Overdue Items (> 15 Days)
+                    </h4>
+                    <div id="reminders-overdue-list" class="inventory-grid">
+                        <!-- Overdue items render here -->
                     </div>
                 </div>
             </div>
