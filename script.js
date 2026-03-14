@@ -505,6 +505,9 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   window.loadFromGoogleSheets = async (isManualRefresh = false) => {
+    // Hide dropdown menu if open
+    if (moreOptionsMenu) moreOptionsMenu.classList.add("hidden");
+
     if (!googleSheetsUrl) {
       if (isManualRefresh) showToast("Configure Google Sheets first");
       return;
@@ -716,6 +719,11 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const openModalWithHistory = (modalElement, stateId) => {
+    // Automatically hide 'more-options' menu when opening any other modal
+    if (stateId !== "more-options" && moreOptionsMenu) {
+      moreOptionsMenu.classList.add("hidden");
+    }
+
     if (history.state?.modal !== stateId) {
       history.pushState({ modal: stateId }, null, "");
     }
@@ -2359,6 +2367,8 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   window.abrirRemindersModal = () => {
+    // Hide dropdown menu
+    if (moreOptionsMenu) moreOptionsMenu.classList.add("hidden");
     stopAllScanners();
 
     const damaged = inventario.filter(i => i.condition === "DAMAGED");
