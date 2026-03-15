@@ -115,7 +115,11 @@
                     <h3>Manage Items</h3>
                     <i id="inventory-sync-indicator" class="ph ph-arrows-clockwise hidden"
                         style="font-size: 0.9rem; color: var(--primary)"></i>
+                    <button class="btn-icon" onclick="window.abrirHelpModal()" title="Help Manual" style="width: 28px; height: 28px; font-size: 0.9rem; background: var(--glass); border: 1px solid var(--border)">
+                        <i class="ph ph-book-open" style="color: var(--primary)"></i>
+                    </button>
                 </div>
+
                 <!-- Search Bar for Inventory Management -->
                 <div class="search-container">
                     <i class="ph ph-magnifying-glass search-icon"></i>
@@ -294,6 +298,9 @@
                 <div style="display: flex; align-items: center; gap: 10px">
                     <i class="ph ph-warning-circle" style="color: var(--danger); font-size: 1.5rem"></i>
                     <h3>Report Issue</h3>
+                    <button class="btn-icon" onclick="window.abrirHelpModal()" title="Help Manual" style="width: 28px; height: 28px; font-size: 0.9rem; background: var(--glass); border: 1px solid var(--border)">
+                        <i class="ph ph-book-open" style="color: var(--primary)"></i>
+                    </button>
                 </div>
                 <button id="close-report-issue-modal" class="btn-icon">
                     <i class="ph ph-x"></i>
@@ -377,6 +384,9 @@
                 <div id="wizard-title-container" style="display: flex; align-items: center; gap: 10px">
                     <i class="ph ph-hand-pointing" style="color: var(--primary); font-size: 1.5rem"></i>
                     <h3>Asset Assignment</h3>
+                    <button class="btn-icon" onclick="window.abrirHelpModal()" title="Help Manual" style="width: 28px; height: 28px; font-size: 0.9rem; background: var(--glass); border: 1px solid var(--border)">
+                        <i class="ph ph-book-open" style="color: var(--primary)"></i>
+                    </button>
                 </div>
                 <button id="close-assign-wizard" class="btn-icon">
                     <i class="ph ph-x"></i>
@@ -501,7 +511,11 @@
                     <h3>Manage Employees</h3>
                     <i id="employee-sync-indicator" class="ph ph-arrows-clockwise hidden"
                         style="font-size: 0.9rem; color: var(--primary)"></i>
+                    <button class="btn-icon" onclick="window.abrirHelpModal()" title="Help Manual" style="width: 28px; height: 28px; font-size: 0.9rem; background: var(--glass); border: 1px solid var(--border)">
+                        <i class="ph ph-book-open" style="color: var(--primary)"></i>
+                    </button>
                 </div>
+
                 <!-- Search Bar for Employees -->
                 <div class="search-container">
                     <i class="ph ph-magnifying-glass search-icon"></i>
@@ -689,6 +703,9 @@
                 <div id="return-wizard-title-container" style="display: flex; align-items: center; gap: 10px">
                     <i class="ph ph-arrow-u-up-left" style="color: var(--danger); font-size: 1.5rem"></i>
                     <h3>Return Assets</h3>
+                    <button class="btn-icon" onclick="window.abrirHelpModal()" title="Help Manual" style="width: 28px; height: 28px; font-size: 0.9rem; background: var(--glass); border: 1px solid var(--border)">
+                        <i class="ph ph-book-open" style="color: var(--primary)"></i>
+                    </button>
                 </div>
                 <button id="close-return-wizard" class="btn-icon">
                     <i class="ph ph-x"></i>
@@ -1368,6 +1385,218 @@
             </div>
         </div>
     </div>
+
+    <!-- Help / User Manual Modal -->
+    <div id="help-modal" class="modal-overlay hidden">
+        <div class="modal-content glass-panel" style="max-width: 600px; background: var(--bg-card)">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 10px">
+                    <i class="ph ph-book-open" style="color: var(--primary); font-size: 1.5rem"></i>
+                    <h3>User Manual</h3>
+                </div>
+                <button id="close-help-modal" class="btn-icon">
+                    <i class="ph ph-x"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="help-content-wrapper">
+                    <!-- Manage Employees Section -->
+                    <div class="help-section">
+                        <h4><i class="ph ph-users"></i> Manage Employees</h4>
+                        
+                        <div class="help-step">
+                            <div class="step-number">1</div>
+                            <div class="step-text">
+                                <strong>Accessing the Module:</strong> Click on the users icon (<i class="ph ph-users"></i>) in the top bar to open the employee list.
+                            </div>
+                        </div>
+
+                        <div class="help-step">
+                            <div class="step-number">2</div>
+                            <div class="step-text">
+                                <strong>Adding Staff:</strong> Tap the blue <strong>"+"</strong> button. You can <strong>Scan</strong> a Badge ID or enter it manually (8 digits).
+                            </div>
+                        </div>
+
+                        <div class="help-step">
+                            <div class="step-number">3</div>
+                            <div class="step-text">
+                                <strong>Identification:</strong> Enter the Name and Phone Number. These details are used to link assets to responsible staff.
+                            </div>
+                        </div>
+
+                        <div class="help-step">
+                            <div class="step-number">4</div>
+                            <div class="step-text">
+                                <strong>Editing/Deleting:</strong> Use the pencil icon to correct data. The trash icon removes an employee, but <strong>only if they have no items assigned</strong>.
+                            </div>
+                        </div>
+
+                        <div class="help-tip">
+                            <i class="ph ph-lightbulb"></i>
+                            <div><strong>Quick Tip:</strong> Use the search bar to find employees instantly by name or badge number.</div>
+                        </div>
+                    </div>
+
+                    <!-- Manage Inventory Section -->
+                    <div class="help-section">
+                        <h4><i class="ph ph-package"></i> Manage Inventory</h4>
+                        
+                        <div class="help-step">
+                            <div class="step-number">1</div>
+                            <div class="step-text">
+                                <strong>Asset Management:</strong> Open the module with the clipboard icon (<i class="ph ph-clipboard-text"></i>). Here you can see all registered equipment.
+                            </div>
+                        </div>
+
+                        <div class="help-step">
+                            <div class="step-number">2</div>
+                            <div class="step-text">
+                                <strong>Registering Assets:</strong> Use the blue <strong>"+"</strong> button. You must provide a unique <strong>Asset ID</strong> (scan QR or enter manually), Name, and Description.
+                            </div>
+                        </div>
+
+                        <div class="help-step">
+                            <div class="step-number">3</div>
+                            <div class="step-text">
+                                <strong>Tracking Status:</strong> Assets can be <strong>AVAILABLE</strong> or <strong>IN USE</strong>. The system automatically tracks who has what and since when.
+                            </div>
+                        </div>
+
+                        <div class="help-step">
+                            <div class="step-number">4</div>
+                            <div class="step-text">
+                                <strong>Actions:</strong> Search for any item by Name or ID. Use the edit feature to update specifications or the trash icon to remove assets from the database.
+                            </div>
+                        </div>
+
+                        <div class="help-tip">
+                            <i class="ph ph-lightbulb"></i>
+                            <div><strong>Quick Tip:</strong> Keep your Asset IDs clear (e.g., FINL001) for faster scanning during assignments.</div>
+                        </div>
+                    </div>
+
+                    <!-- Assign Item Section -->
+                    <div class="help-section">
+                        <h4><i class="ph ph-hand-pointing"></i> Asset Assignment</h4>
+                        
+                        <div class="help-step">
+                            <div class="step-number">1</div>
+                            <div class="step-text">
+                                <strong>Select Employee:</strong> Search by name or scan their <strong>Badge ID</strong>. This identifies who is receiving the equipment.
+                            </div>
+                        </div>
+
+                        <div class="help-step">
+                            <div class="step-number">2</div>
+                            <div class="step-text">
+                                <strong>Select Assets:</strong> You can scan multiple items one after another or select them from the list of <strong>AVAILABLE</strong> items.
+                            </div>
+                        </div>
+
+                        <div class="help-step">
+                            <div class="step-number">3</div>
+                            <div class="step-text">
+                                <strong>Batch Scanned Items:</strong> You'll see a list of items ready to be assigned at the bottom. You can remove any item if scanned by mistake.
+                            </div>
+                        </div>
+
+                        <div class="help-step">
+                            <div class="step-number">4</div>
+                            <div class="step-text">
+                                <strong>Finish:</strong> Tap <strong>"Assign Items"</strong>. The system updates their status to <strong>IN USE</strong> and records the assignment date.
+                            </div>
+                        </div>
+
+                        <div class="help-tip">
+                            <i class="ph ph-lightbulb"></i>
+                            <div><strong>Quick Tip:</strong> Use a physical scanner or the camera for Step 2 to assign multiple items in seconds.</div>
+                        </div>
+                    </div>
+
+                    <!-- Return Items Section -->
+                    <div class="help-section">
+                        <h4><i class="ph ph-arrow-u-up-left"></i> Return Assets</h4>
+                        
+                        <div class="help-step">
+                            <div class="step-number">1</div>
+                            <div class="step-text">
+                                <strong>Identify User:</strong> Select the employee who is returning the items. The system will display all items currently assigned to them.
+                            </div>
+                        </div>
+
+                        <div class="help-step">
+                            <div class="step-number">2</div>
+                            <div class="step-text">
+                                <strong>Select Items:</strong> Scan the asset QR or select from their list of active assignments. You can return multiple items at once.
+                            </div>
+                        </div>
+
+                        <div class="help-step">
+                            <div class="step-number">3</div>
+                            <div class="step-text">
+                                <strong>Confirm Check-in:</strong> Tap <strong>"Return Items"</strong>. The assets will automatically return to <strong>AVAILABLE</strong> status.
+                            </div>
+                        </div>
+
+                        <div class="help-tip">
+                            <i class="ph ph-lightbulb"></i>
+                            <div><strong>Quick Tip:</strong> Use the camera scanner to quickly verify the physical ID of the item being returned.</div>
+                        </div>
+                    </div>
+
+                    <!-- Report Issue Section -->
+                    <div class="help-section">
+                        <h4><i class="ph ph-warning-circle"></i> Report Issue</h4>
+                        
+                        <div class="help-step">
+                            <div class="step-number">1</div>
+                            <div class="step-text">
+                                <strong>Find Asset:</strong> Search for the item being reported. Only items currently <strong>IN USE</strong> can be reported as damaged or missing.
+                            </div>
+                        </div>
+
+                        <div class="help-step">
+                            <div class="step-number">2</div>
+                            <div class="step-text">
+                                <strong>Describe Incident:</strong> Enter a brief note explaining what happened (e.g., "Screen cracked" or "Lost during transit").
+                            </div>
+                        </div>
+
+                        <div class="help-step">
+                            <div class="step-number">3</div>
+                            <div class="step-text">
+                                <strong>Update Status:</strong> Submit the report. The item's condition will be updated to <strong>DAMAGED</strong> or recorded as an incident.
+                            </div>
+                        </div>
+
+                        <div class="help-tip">
+                            <i class="ph ph-warning"></i>
+                            <div><strong>Important:</strong> Damaged items remain assigned to the user until they are physically returned through the "Return Item" module.</div>
+                        </div>
+                    </div>
+
+                    <!-- General Tips Section -->
+
+                    <div class="help-section">
+                        <h4><i class="ph ph-info"></i> Cloud Sync</h4>
+                        <div class="step-text" style="margin-left: 0">
+                            Updates are saved locally and synced automatically with <strong>Google Sheets</strong> when you see the green cloud icon (<i class="ph ph-cloud-check"></i>).
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn-primary" id="help-got-it-btn">Got it!</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Help Button -->
+    <button id="floating-help-btn" class="floating-help-btn" title="Open Manual">
+        <i class="ph ph-book-open"></i>
+    </button>
+
 
     <script src="script.js"></script>
     <script>

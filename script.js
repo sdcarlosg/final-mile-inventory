@@ -130,6 +130,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const editEmpPhoneInput = document.getElementById("edit-emp-phone");
   const editOriginalIdInput = document.getElementById("edit-original-id");
 
+  // --- Help Manual DOM ---
+  const helpModal = document.getElementById("help-modal");
+  const helpBtn = document.getElementById("floating-help-btn");
+  const closeHelpModalBtn = document.getElementById("close-help-modal");
+  const helpGotItBtn = document.getElementById("help-got-it-btn");
+
   // --- Assignment Wizard DOM ---
   const assignWizardModal = document.getElementById("assign-wizard-modal");
   const closeAssignWizardBtn = document.getElementById("close-assign-wizard");
@@ -765,6 +771,7 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("report-risk-modal"),
         document.getElementById("report-movements-modal"),
         remindersModal,
+        helpModal,
         moreOptionsMenu,
       ].filter((m) => m !== null && m !== undefined);
 
@@ -795,6 +802,7 @@ document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("report-risk-modal"),
       document.getElementById("report-movements-modal"),
       remindersModal,
+      helpModal,
       moreOptionsMenu,
     ].filter((m) => m !== null && m !== undefined);
 
@@ -1390,6 +1398,27 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     closeModalWithHistory();
   });
+
+  // --- Help Manual Logic ---
+  const closeHelpModal = () => closeModalWithHistory();
+  if (helpBtn) {
+    helpBtn.addEventListener("click", () => {
+      window.abrirHelpModal();
+    });
+  }
+
+  if (closeHelpModalBtn) closeHelpModalBtn.addEventListener("click", closeHelpModal);
+  if (helpGotItBtn) helpGotItBtn.addEventListener("click", closeHelpModal);
+  if (helpModal) {
+    helpModal.addEventListener("click", (e) => {
+      if (e.target === helpModal) closeHelpModal();
+    });
+  }
+
+  window.abrirHelpModal = () => {
+    openModalWithHistory(helpModal, "help-modal");
+  };
+
 
   // --- Employees ---
   let employeeScanner = null;

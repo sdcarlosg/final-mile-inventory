@@ -1473,3 +1473,115 @@ input:focus {
     margin-bottom: 20px;
   }
 }
+
+/* --- Floating Help Button --- */
+.floating-help-btn {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  cursor: pointer;
+  z-index: 90;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.floating-help-btn:hover {
+  transform: scale(1.1) rotate(5deg);
+  background: var(--glass-highlight);
+  border-color: var(--primary);
+  box-shadow: 0 15px 30px rgba(56, 189, 248, 0.4);
+}
+
+.floating-help-btn i {
+  filter: drop-shadow(0 0 5px rgba(56, 189, 248, 0.3));
+}
+
+/* --- Manual / Help Modal Styles --- */
+.help-content-wrapper {
+  max-height: 60vh;
+  overflow-y: auto;
+  padding-right: 10px;
+}
+
+.help-section {
+  margin-bottom: 2rem;
+  padding: 1.2rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.help-section h4 {
+  color: var(--primary);
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.help-step {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 1rem;
+  align-items: flex-start;
+}
+
+.step-number {
+  background: var(--primary);
+  color: #0f172a;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.step-text {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.step-text strong {
+  color: var(--text-main);
+}
+
+.help-tip {
+  margin-top: 1rem;
+  padding: 0.8rem;
+  background: rgba(52, 211, 153, 0.1);
+  border-left: 3px solid var(--success);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: var(--success);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+@media (max-width: 600px) {
+  .floating-help-btn {
+    bottom: 1.5rem;
+    right: 1.5rem;
+    width: 48px;
+    height: 48px;
+    font-size: 1.3rem;
+  }
+}
