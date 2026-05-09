@@ -845,6 +845,9 @@ input:focus {
   #inventory-mgr-modal .modal-content.large-modal,
   #report-emp-list-modal .modal-content.large-modal,
   #report-risk-modal .modal-content.large-modal,
+  #report-movements-modal .modal-content.large-modal,
+  #report-last-movements-modal .modal-content.large-modal,
+  #reminders-modal .modal-content.large-modal,
   #report-issue-modal .modal-content {
     width: 100% !important;
     max-width: none !important;
@@ -864,6 +867,9 @@ input:focus {
   #inventory-mgr-modal .modal-body,
   #report-emp-list-modal .modal-body,
   #report-risk-modal .modal-body,
+  #report-movements-modal .modal-body,
+  #report-last-movements-modal .modal-body,
+  #reminders-modal .modal-body,
   #report-issue-modal .modal-body {
     padding: 0 0.5rem 1rem 0.5rem !important;
   }
