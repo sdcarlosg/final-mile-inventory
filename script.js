@@ -3,6 +3,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let inventario;
   let empleados = JSON.parse(localStorage.getItem("empleados")) || [];
   const storedData = localStorage.getItem("inventario");
+  let historyLog = JSON.parse(localStorage.getItem("historyLog")) || [];
   let adminPasscode = localStorage.getItem("adminPasscode") || "1234";
   let googleSheetsUrl = localStorage.getItem("googleSheetsUrl") || "";
   let currentEditingId = null;
@@ -44,6 +45,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const closeConfigModalBtn = document.getElementById("close-config-modal");
   const cancelConfigBtn = document.getElementById("cancel-config");
   const configForm = document.getElementById("config-form");
+  const clearHistoryLogBtn = document.getElementById("clear-history-log-btn");
+  const backupAllDataBtn = document.getElementById("backup-all-data-btn");
+  const restoreDataBtn = document.getElementById("restore-data-btn");
+  const restoreFileInput = document.getElementById("restore-file-input");
   const sheetsUrlInput = document.getElementById("sheets-url");
   const cloudSyncBtn = document.getElementById("cloud-sync-btn");
 
@@ -472,6 +477,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const saveToLocalStorage = () => {
     localStorage.setItem("inventario", JSON.stringify(inventario));
     localStorage.setItem("empleados", JSON.stringify(empleados));
+    localStorage.setItem("historyLog", JSON.stringify(historyLog));
     updateAssigneeDatalist();
     updateDashboardSummary();
     if (googleSheetsUrl && isInitialLoadComplete) debouncedSync();
@@ -497,6 +503,7 @@ document.addEventListener("DOMContentLoaded", () => {
           action: "sync",
           data: inventario,
           employees: empleados,
+          history: historyLog,
           passcode: btoa(adminPasscode),
         }),
       });
@@ -558,6 +565,10 @@ document.addEventListener("DOMContentLoaded", () => {
       if (result.employees) {
         empleados = result.employees;
         localStorage.setItem("empleados", JSON.stringify(empleados));
+      }
+      if (result.history) {
+        historyLog = result.history;
+        localStorage.setItem("historyLog", JSON.stringify(historyLog));
       }
       if (result.passcode) {
         try {
@@ -770,6 +781,7 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("report-emp-list-modal"),
         document.getElementById("report-risk-modal"),
         document.getElementById("report-movements-modal"),
+        document.getElementById("report-last-movements-modal"),
         remindersModal,
         helpModal,
         moreOptionsMenu,
@@ -801,6 +813,7 @@ document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("report-emp-list-modal"),
       document.getElementById("report-risk-modal"),
       document.getElementById("report-movements-modal"),
+      document.getElementById("report-last-movements-modal"),
       remindersModal,
       helpModal,
       moreOptionsMenu,
@@ -817,6 +830,7 @@ document.addEventListener("DOMContentLoaded", () => {
         "report-emp-list-modal",
         "report-risk-modal",
         "report-movements-modal",
+        "report-last-movements-modal",
         "reminders-modal",
         "more-options",
       ].includes(targetState)
@@ -842,6 +856,9 @@ document.addEventListener("DOMContentLoaded", () => {
         if (m) m.classList.remove("hidden");
       } else if (targetState === "report-movements-modal") {
         const m = document.getElementById("report-movements-modal");
+        if (m) m.classList.remove("hidden");
+      } else if (targetState === "report-last-movements-modal") {
+        const m = document.getElementById("report-last-movements-modal");
         if (m) m.classList.remove("hidden");
       } else if (targetState === "stats-modal" && statsModal)
         statsModal.classList.remove("hidden");
@@ -1364,6 +1381,91 @@ document.addEventListener("DOMContentLoaded", () => {
   const closeConfigModal = () => closeModalWithHistory();
   closeConfigModalBtn.addEventListener("click", closeConfigModal);
   cancelConfigBtn.addEventListener("click", closeConfigModal);
+
+  if (clearHistoryLogBtn) {
+    clearHistoryLogBtn.addEventListener("click", async () => {
+      const confirmed = await showCustomConfirm("Are you sure you want to permanently delete the entire History Log? This action cannot be undone.");
+      if (confirmed) {
+        historyLog = [];
+        saveToLocalStorage();
+        if (googleSheetsUrl) {
+          syncWithGoogleSheets();
+        }
+        showToast("History Log has been cleared.");
+      }
+    });
+  }
+
+  if (backupAllDataBtn) {
+    backupAllDataBtn.addEventListener("click", () => {
+      const backupData = {
+        inventory: inventario,
+        employees: empleados,
+        history: historyLog,
+        exportDate: new Date().toISOString()
+      };
+
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
+      const downloadAnchorNode = document.createElement("a");
+      downloadAnchorNode.setAttribute("href", dataStr);
+      downloadAnchorNode.setAttribute("download", `Final_Mile_Inventory_Backup_${new Date().toISOString().split("T")[0]}.json`);
+      document.body.appendChild(downloadAnchorNode);
+      downloadAnchorNode.click();
+      downloadAnchorNode.remove();
+
+      showToast("Backup downloaded successfully!");
+    });
+  }
+
+  if (restoreDataBtn && restoreFileInput) {
+    restoreDataBtn.addEventListener("click", () => {
+      restoreFileInput.click();
+    });
+
+    restoreFileInput.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        try {
+          const importedData = JSON.parse(event.target.result);
+
+          if (!importedData.inventory || !importedData.employees || !importedData.history) {
+            throw new Error("Invalid backup file format.");
+          }
+
+          const confirmed = await showCustomConfirm("WARNING: Restoring this backup will completely overwrite your current Inventory, Employees, and History Log. Are you absolutely sure you want to proceed?");
+          if (confirmed) {
+            inventario = importedData.inventory;
+            empleados = importedData.employees;
+            historyLog = importedData.history;
+
+            saveToLocalStorage();
+
+            if (googleSheetsUrl) {
+              syncWithGoogleSheets();
+            }
+
+            toggleDashboard(true);
+            renderInventoryMgrList();
+            if (typeof renderEmpList === "function") renderEmpList();
+
+            showToast("Data restored successfully!");
+            closeModalWithHistory();
+          }
+        } catch (error) {
+          console.error("Error parsing backup file:", error);
+          showToast("Failed to restore data. The file might be corrupted.", "error");
+        }
+
+        // Reset file input
+        restoreFileInput.value = "";
+      };
+
+      reader.readAsText(file);
+    });
+  }
 
   configForm.addEventListener("submit", (e) => {
     e.preventDefault();
@@ -3083,6 +3185,16 @@ document.addEventListener("DOMContentLoaded", () => {
         inventario[idx].status = "IN USE";
         inventario[idx].fechaAsignacion = new Date().toLocaleDateString();
         inventario[idx].fechaRetorno = "";
+
+        historyLog.push({
+          id: "hist_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5),
+          timestamp: Date.now(),
+          dateStr: new Date().toLocaleDateString(),
+          assetId: inventario[idx].id,
+          assetName: inventario[idx].nombre,
+          employeeName: selectedWizardEmployee.name,
+          action: "ASSIGNED"
+        });
         inventario[idx].condition = "";
         inventario[idx].incidentNote = "";
       }
@@ -3683,6 +3795,16 @@ document.addEventListener("DOMContentLoaded", () => {
           inventario[idx].status = "AVAILABLE";
           inventario[idx].fechaRetorno = new Date().toLocaleDateString();
           inventario[idx].fechaAsignacion = "";
+
+          historyLog.push({
+            id: "hist_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5),
+            timestamp: Date.now(),
+            dateStr: new Date().toLocaleDateString(),
+            assetId: inventario[idx].id,
+            assetName: inventario[idx].nombre,
+            employeeName: inventario[idx].lastAssignedTo,
+            action: "RETURNED"
+          });
           inventario[idx].condition = "";
           inventario[idx].incidentNote = "";
         }
@@ -4032,6 +4154,8 @@ document.addEventListener("DOMContentLoaded", () => {
                             <th>Assigned To</th>
                             <th>Date Assigned</th>
                             <th>Date Returned</th>
+                            <th>Condition</th>
+                            <th>Incident Note</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -4047,6 +4171,8 @@ document.addEventListener("DOMContentLoaded", () => {
                             <td>${item.asignadoA}</td>
                             <td>${formatDt(item.fechaAsignacion)}</td>
                             <td>${formatDt(item.fechaRetorno)}</td>
+                            <td>${item.condition || ""}</td>
+                            <td>${item.incidentNote || ""}</td>
                         </tr>
                     `;
         });
@@ -4231,6 +4357,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const reportMovementsExportBtn = document.getElementById("report-movements-export-btn");
   const reportMovementsPrintBtn = document.getElementById("report-movements-print-btn");
   const movementsSearchInput = document.getElementById("movements-search-input");
+  const movementsTimeFilter = document.getElementById("movements-time-filter");
 
   const formatDateOnly = (dateStr) => {
     if (!dateStr || dateStr === "N/A") return "N/A";
@@ -4239,74 +4366,97 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const buildMovementsData = () => {
-    return inventario.filter(item => {
-      // Show if it has been assigned at least once or currently assigned
-      return item.lastAssignedTo || (item.asignadoA && item.asignadoA !== " NONE" && item.asignadoA !== "NONE");
+    // Only return ASSIGN/ASSIGNED events
+    const getTs = (log) => log.timestamp ? Number(log.timestamp) : new Date(log.dateStr).getTime();
+    const sortedLog = [...historyLog].sort((a, b) => getTs(b) - getTs(a)); // newest first
+
+    let assignData = [];
+
+    sortedLog.forEach(log => {
+      const action = String(log.action || "").toUpperCase();
+      if (action === "ASSIGN" || action === "ASSIGNED") {
+        assignData.push({
+          assetId: log.assetId,
+          assetName: log.assetName,
+          employeeName: log.employeeName,
+          dateAssigned: log.dateStr,
+          dateAssignedMs: getTs(log)
+        });
+      }
     });
+
+    return assignData;
   };
 
-  const renderMovementsReportList = () => {
-    if (!reportMovementsGridContainer) return;
-    reportMovementsGridContainer.innerHTML = "";
-
+  const getFilteredMovementsData = () => {
     let movData = buildMovementsData();
 
-    if (!movData || movData.length === 0) {
-      reportMovementsGridContainer.innerHTML =
-        '<div style="text-align:center; color:var(--text-muted); padding:1.5rem; width:100%; font-size:0.85rem;">No movements found.</div>';
-      return;
+    // Time filter logic based on Date Assigned
+    if (movementsTimeFilter && movementsTimeFilter.value !== "all") {
+      const now = Date.now();
+      const oneDayMs = 24 * 60 * 60 * 1000;
+      let threshold = 0;
+      if (movementsTimeFilter.value === "weekly") threshold = now - (7 * oneDayMs);
+      else if (movementsTimeFilter.value === "monthly") threshold = now - (30 * oneDayMs);
+      else if (movementsTimeFilter.value === "yearly") threshold = now - (365 * oneDayMs);
+
+      movData = movData.filter(item => item.dateAssignedMs >= threshold);
     }
 
     const term = (movementsSearchInput ? movementsSearchInput.value.toLowerCase().trim() : "");
     if (term) {
       movData = movData.filter(item => {
-        return String(item.id).toLowerCase().includes(term) ||
-          (item.nombre || "").toLowerCase().includes(term) ||
-          (item.lastAssignedTo || item.asignadoA || "").toLowerCase().includes(term);
+        return String(item.assetId).toLowerCase().includes(term) ||
+          (item.assetName || "").toLowerCase().includes(term) ||
+          (item.employeeName || "").toLowerCase().includes(term);
       });
     }
 
-    if (movData.length === 0) {
+    return movData;
+  };
+
+  const renderMovementsReportList = () => {
+    if (!reportMovementsGridContainer) return;
+
+    const movData = getFilteredMovementsData();
+
+    if (!movData || movData.length === 0) {
       reportMovementsGridContainer.innerHTML =
-        '<div style="text-align:center; color:var(--text-muted); padding:1.5rem; width:100%; font-size:0.85rem;">No matches found.</div>';
+        '<div style="text-align:center; color:var(--text-muted); padding:1.5rem; width:100%; font-size:0.85rem;">No movements found for this criteria.</div>';
       return;
     }
 
-    // Sort by Name
-    movData.sort((a, b) => (a.nombre || "").localeCompare(b.nombre || ""));
+    // Build Table Layout
+    let tableHtml = `
+      <table style="width: 100%; border-collapse: collapse; margin-top: 10px; color: white; text-align: left; font-size: 0.9rem;">
+        <thead>
+          <tr style="border-bottom: 2px solid var(--border); color: var(--text-muted);">
+            <th style="padding: 10px;">Asset ID</th>
+            <th style="padding: 10px;">Asset Description</th>
+            <th style="padding: 10px;">Employee Assigned</th>
+            <th style="padding: 10px;">Date Assigned</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
 
     movData.forEach((item) => {
-      // Note: If the item is currently in use, show current assignment as movement, else last movement
-      const isCurrentlyAssigned = item.status === "IN USE" || item.status === "LOST / MAINTENANCE";
-      const assignedTo = isCurrentlyAssigned ? item.asignadoA : (item.lastAssignedTo || item.asignadoA || "N/A");
-      const previousAssignedTo = item.lastAssignedTo || "N/A";
-      const dateAssigned = formatDateOnly(isCurrentlyAssigned ? item.fechaAsignacion : (item.lastDateAssigned || item.fechaAsignacion || "N/A"));
-      const dateReturned = formatDateOnly(isCurrentlyAssigned ? "" : (item.lastDateReturned || item.fechaRetorno || "N/A"));
-
-      const row = document.createElement("div");
-      row.className = "inventory-list-item";
-      row.style.cursor = "default";
-      row.style.display = "flex";
-      row.style.flexDirection = "column";
-      row.style.padding = "1rem";
-
-      row.innerHTML = `
-        <div class="employee-list-info" style="width: 100%;">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 5px;">
-                <span class="emp-name" style="color: var(--primary); font-size: 1.1rem;">${escapeHtml(item.nombre)} <span style="font-size: 0.8rem; color: var(--text-muted);">#${escapeHtml(String(item.id))}</span></span>
-                <span class="tile-badge" style="position:static; transform:none; background:rgba(34, 197, 94, 0.2); color: var(--success); font-size:0.75rem; padding: 2px 8px; font-weight: bold;">Movement</span>
-            </div>
-            <div style="font-size: 0.85rem; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 5px;">
-                <div><span style="color:var(--text-muted);">Last checked out by:</span><br/>${escapeHtml(assignedTo.replace(" (DAMAGED)", "").replace(" (MISSING)", ""))}</div>
-                <div><span style="color:var(--text-muted);">Previous checked out by:</span><br/>${escapeHtml(previousAssignedTo.replace(" (DAMAGED)", "").replace(" (MISSING)", ""))}</div>
-                <div><span style="color:var(--text-muted);">Current status of the Asset:</span><br/>${escapeHtml(item.status)}</div>
-                <div><span style="color:var(--text-muted);">Date Assigned:</span><br/>${escapeHtml(dateAssigned)}</div>
-                <div><span style="color:var(--text-muted);">Date Returned:</span><br/>${escapeHtml(dateReturned)}</div>
-            </div>
-        </div>
+      tableHtml += `
+          <tr style="border-bottom: 1px solid var(--border); background: rgba(255, 255, 255, 0.02);">
+            <td style="padding: 10px;">${escapeHtml(String(item.assetId))}</td>
+            <td style="padding: 10px;">${escapeHtml(item.assetName)}</td>
+            <td style="padding: 10px;">${escapeHtml(item.employeeName)}</td>
+            <td style="padding: 10px;">${escapeHtml(formatDateOnly(item.dateAssigned))}</td>
+          </tr>
       `;
-      reportMovementsGridContainer.appendChild(row);
     });
+
+    tableHtml += `
+        </tbody>
+      </table>
+    `;
+
+    reportMovementsGridContainer.innerHTML = tableHtml;
   };
 
   if (reportMovementsBtn && reportMovementsModal) {
@@ -4330,37 +4480,32 @@ document.addEventListener("DOMContentLoaded", () => {
     movementsSearchInput.addEventListener("input", renderMovementsReportList);
   }
 
+  if (movementsTimeFilter) {
+    movementsTimeFilter.addEventListener("change", renderMovementsReportList);
+  }
+
   if (reportMovementsExportBtn) {
     reportMovementsExportBtn.addEventListener("click", () => {
-      const movData = buildMovementsData();
+      const movData = getFilteredMovementsData();
       if (!movData || movData.length === 0) {
         showToast("No movements data to export", "error");
         return;
       }
       let csvContent = "data:text/csv;charset=utf-8,";
-      csvContent += "Asset ID,Name,Last checked out by,Previous checked out by,Date Assigned,Date Returned\n";
-      const sortedInv = [...movData].sort((a, b) => (a.nombre || "").localeCompare(b.nombre || ""));
-      sortedInv.forEach((item) => {
-        const isCurrentlyAssigned = item.status === "IN USE" || item.status === "LOST / MAINTENANCE";
-        const assignedTo = isCurrentlyAssigned ? item.asignadoA : (item.lastAssignedTo || item.asignadoA || "N/A");
-        const previousAssignedTo = item.lastAssignedTo || "N/A";
-        const dateAssigned = formatDateOnly(isCurrentlyAssigned ? item.fechaAsignacion : (item.lastDateAssigned || item.fechaAsignacion || "N/A"));
-        const dateReturned = formatDateOnly(isCurrentlyAssigned ? "" : (item.lastDateReturned || item.fechaRetorno || "N/A"));
-
+      csvContent += "Asset ID,Asset Description,Employee Assigned,Date Assigned\n";
+      movData.forEach((item) => {
         const row = [
-          item.id,
-          `"${(item.nombre || "").replace(/"/g, '""')}"`,
-          `"${(assignedTo || "").replace(" (DAMAGED)", "").replace(" (MISSING)", "").replace(/"/g, '""')}"`,
-          `"${(previousAssignedTo || "").replace(" (DAMAGED)", "").replace(" (MISSING)", "").replace(/"/g, '""')}"`,
-          `"${(dateAssigned || "").replace(/"/g, '""')}"`,
-          `"${(dateReturned || "").replace(/"/g, '""')}"`
+          item.assetId,
+          `"${(item.assetName || "").replace(/"/g, '""')}"`,
+          `"${(item.employeeName || "").replace(/"/g, '""')}"`,
+          `"${(formatDateOnly(item.dateAssigned) || "").replace(/"/g, '""')}"`
         ].join(",");
         csvContent += row + "\r\n";
       });
       const encodedUri = encodeURI(csvContent);
       const link = document.createElement("a");
       link.setAttribute("href", encodedUri);
-      link.setAttribute("download", `Movements_Report_${new Date().toISOString().split("T")[0]}.csv`);
+      link.setAttribute("download", `Assigned_History_${new Date().toISOString().split("T")[0]}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -4370,7 +4515,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (reportMovementsPrintBtn) {
     reportMovementsPrintBtn.addEventListener("click", () => {
-      const movData = buildMovementsData();
+      const movData = getFilteredMovementsData();
       if (!movData || movData.length === 0) {
         showToast("No movements data to export", "error");
         return;
@@ -4381,38 +4526,27 @@ document.addEventListener("DOMContentLoaded", () => {
 
       let tableHtml = `
            <div class="print-header">
-               <h2>Movements Report</h2>
+               <h2>Assigned History</h2>
                <p>Generated on ${dateStr}</p>
            </div>
            <table class="print-table">
                <thead>
                    <tr>
                        <th>Asset ID</th>
-                       <th>Name</th>
-                       <th>Last checked out by</th>
-                       <th>Previous checked out by</th>
+                       <th>Asset Description</th>
+                       <th>Employee Assigned</th>
                        <th>Date Assigned</th>
-                       <th>Date Returned</th>
                    </tr>
                </thead>
                <tbody>
        `;
-      const sortedInv = [...movData].sort((a, b) => (a.nombre || "").localeCompare(b.nombre || ""));
-      sortedInv.forEach((item) => {
-        const isCurrentlyAssigned = item.status === "IN USE" || item.status === "LOST / MAINTENANCE";
-        const assignedTo = isCurrentlyAssigned ? item.asignadoA : (item.lastAssignedTo || item.asignadoA || "N/A");
-        const previousAssignedTo = item.lastAssignedTo || "N/A";
-        const dateAssigned = formatDateOnly(isCurrentlyAssigned ? item.fechaAsignacion : (item.lastDateAssigned || item.fechaAsignacion || "N/A"));
-        const dateReturned = formatDateOnly(isCurrentlyAssigned ? "" : (item.lastDateReturned || item.fechaRetorno || "N/A"));
-
+      movData.forEach((item) => {
         tableHtml += `
                <tr>
-                   <td>${escapeHtml(String(item.id))}</td>
-                   <td>${escapeHtml(item.nombre)}</td>
-                   <td>${escapeHtml(assignedTo.replace(" (DAMAGED)", "").replace(" (MISSING)", ""))}</td>
-                   <td>${escapeHtml(previousAssignedTo.replace(" (DAMAGED)", "").replace(" (MISSING)", ""))}</td>
-                   <td>${escapeHtml(dateAssigned)}</td>
-                   <td>${escapeHtml(dateReturned)}</td>
+                   <td>${escapeHtml(String(item.assetId))}</td>
+                   <td>${escapeHtml(item.assetName)}</td>
+                   <td>${escapeHtml(item.employeeName)}</td>
+                   <td>${escapeHtml(formatDateOnly(item.dateAssigned))}</td>
                </tr>
            `;
       });
@@ -4429,6 +4563,214 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+
+  // Last Movements Report Logic
+  const reportLastMovementsBtn = document.getElementById("report-last-movements-btn");
+  const reportLastMovementsModal = document.getElementById("report-last-movements-modal");
+  const closeReportLastMovementsModalBtn = document.getElementById("close-report-last-movements-modal");
+  const reportLastMovementsGridContainer = document.getElementById("report-last-movements-grid-container");
+  const reportLastMovementsExportBtn = document.getElementById("report-last-movements-export-btn");
+  const reportLastMovementsPrintBtn = document.getElementById("report-last-movements-print-btn");
+  const lastMovementsSearchInput = document.getElementById("last-movements-search-input");
+  const lastMovementsTimeFilter = document.getElementById("last-movements-time-filter");
+
+  const buildReturnedData = () => {
+    // Only return RETURN/RETURNED events
+    const getTs = (log) => log.timestamp ? Number(log.timestamp) : new Date(log.dateStr).getTime();
+    const sortedLog = [...historyLog].sort((a, b) => getTs(b) - getTs(a)); // newest first
+
+    let returnData = [];
+
+    sortedLog.forEach(log => {
+      const action = String(log.action || "").toUpperCase();
+      if (action === "RETURN" || action === "RETURNED") {
+        returnData.push({
+          assetId: log.assetId,
+          assetName: log.assetName,
+          employeeName: log.employeeName,
+          dateReturned: log.dateStr,
+          dateReturnedMs: getTs(log)
+        });
+      }
+    });
+
+    return returnData;
+  };
+
+  const getFilteredReturnedData = () => {
+    let retData = buildReturnedData();
+
+    // Time filter logic based on Date Returned
+    if (lastMovementsTimeFilter && lastMovementsTimeFilter.value !== "all") {
+      const now = Date.now();
+      const oneDayMs = 24 * 60 * 60 * 1000;
+      let threshold = 0;
+      if (lastMovementsTimeFilter.value === "weekly") threshold = now - (7 * oneDayMs);
+      else if (lastMovementsTimeFilter.value === "monthly") threshold = now - (30 * oneDayMs);
+      else if (lastMovementsTimeFilter.value === "yearly") threshold = now - (365 * oneDayMs);
+
+      retData = retData.filter(item => item.dateReturnedMs >= threshold);
+    }
+
+    const term = (lastMovementsSearchInput ? lastMovementsSearchInput.value.toLowerCase().trim() : "");
+    if (term) {
+      retData = retData.filter(item => {
+        return String(item.assetId).toLowerCase().includes(term) ||
+          (item.assetName || "").toLowerCase().includes(term) ||
+          (item.employeeName || "").toLowerCase().includes(term);
+      });
+    }
+
+    return retData;
+  };
+
+  const renderLastMovementsReportList = () => {
+    if (!reportLastMovementsGridContainer) return;
+
+    const retData = getFilteredReturnedData();
+
+    if (!retData || retData.length === 0) {
+      reportLastMovementsGridContainer.innerHTML =
+        '<div style="text-align:center; color:var(--text-muted); padding:1.5rem; width:100%; font-size:0.85rem;">No returned items found for this criteria.</div>';
+      return;
+    }
+
+    // Build Table Layout
+    let tableHtml = `
+      <table style="width: 100%; border-collapse: collapse; margin-top: 10px; color: white; text-align: left; font-size: 0.9rem;">
+        <thead>
+          <tr style="border-bottom: 2px solid var(--border); color: var(--text-muted);">
+            <th style="padding: 10px;">Asset ID</th>
+            <th style="padding: 10px;">Asset Description</th>
+            <th style="padding: 10px;">Employee Assigned</th>
+            <th style="padding: 10px;">Date Returned</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    retData.forEach((item) => {
+      tableHtml += `
+          <tr style="border-bottom: 1px solid var(--border); background: rgba(255, 255, 255, 0.02);">
+            <td style="padding: 10px;">${escapeHtml(String(item.assetId))}</td>
+            <td style="padding: 10px;">${escapeHtml(item.assetName)}</td>
+            <td style="padding: 10px;">${escapeHtml(item.employeeName)}</td>
+            <td style="padding: 10px;">${escapeHtml(formatDateOnly(item.dateReturned))}</td>
+          </tr>
+      `;
+    });
+
+    tableHtml += `
+        </tbody>
+      </table>
+    `;
+
+    reportLastMovementsGridContainer.innerHTML = tableHtml;
+  };
+
+  if (reportLastMovementsBtn && reportLastMovementsModal) {
+    reportLastMovementsBtn.addEventListener("click", () => {
+      if (typeof reportsModal !== "undefined" && reportsModal) {
+        reportsModal.classList.add("hidden");
+      }
+      if (lastMovementsSearchInput) lastMovementsSearchInput.value = "";
+      renderLastMovementsReportList();
+      openModalWithHistory(reportLastMovementsModal, "report-last-movements-modal");
+    });
+  }
+
+  if (closeReportLastMovementsModalBtn) {
+    closeReportLastMovementsModalBtn.addEventListener("click", () => {
+      closeModalWithHistory();
+    });
+  }
+
+  if (lastMovementsSearchInput) {
+    lastMovementsSearchInput.addEventListener("input", renderLastMovementsReportList);
+  }
+
+  if (lastMovementsTimeFilter) {
+    lastMovementsTimeFilter.addEventListener("change", renderLastMovementsReportList);
+  }
+
+  if (reportLastMovementsExportBtn) {
+    reportLastMovementsExportBtn.addEventListener("click", () => {
+      const retData = getFilteredReturnedData();
+      if (!retData || retData.length === 0) {
+        showToast("No data to export", "error");
+        return;
+      }
+      let csvContent = "data:text/csv;charset=utf-8,";
+      csvContent += "Asset ID,Asset Description,Employee Assigned,Date Returned\n";
+      retData.forEach((item) => {
+        const row = [
+          item.assetId,
+          `"${(item.assetName || "").replace(/"/g, '""')}"`,
+          `"${(item.employeeName || "").replace(/"/g, '""')}"`,
+          `"${(formatDateOnly(item.dateReturned) || "").replace(/"/g, '""')}"`
+        ].join(",");
+        csvContent += row + "\r\n";
+      });
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `Returned_History_${new Date().toISOString().split("T")[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast("Export Successful");
+    });
+  }
+
+  if (reportLastMovementsPrintBtn) {
+    reportLastMovementsPrintBtn.addEventListener("click", () => {
+      const retData = getFilteredReturnedData();
+      if (!retData || retData.length === 0) {
+        showToast("No data to export", "error");
+        return;
+      }
+      const printContainer = document.createElement("div");
+      printContainer.id = "print-container";
+      const dateStr = new Date().toLocaleDateString();
+
+      let tableHtml = `
+           <div class="print-header">
+               <h2>Returned History</h2>
+               <p>Generated on ${dateStr}</p>
+           </div>
+           <table class="print-table">
+               <thead>
+                   <tr>
+                       <th>Asset ID</th>
+                       <th>Asset Description</th>
+                       <th>Employee Assigned</th>
+                       <th>Date Returned</th>
+                   </tr>
+               </thead>
+               <tbody>
+       `;
+      retData.forEach((item) => {
+        tableHtml += `
+               <tr>
+                   <td>${escapeHtml(String(item.assetId))}</td>
+                   <td>${escapeHtml(item.assetName)}</td>
+                   <td>${escapeHtml(item.employeeName)}</td>
+                   <td>${escapeHtml(formatDateOnly(item.dateReturned))}</td>
+               </tr>
+           `;
+      });
+      tableHtml += '</tbody></table>';
+      printContainer.innerHTML = tableHtml;
+      document.body.appendChild(printContainer);
+
+      window.print();
+
+      setTimeout(() => {
+        const pc = document.getElementById("print-container");
+        if (pc) pc.remove();
+      }, 1000);
+    });
+  }
 
   // Accountability & Risk Report Logic
   const reportRiskBtn = document.getElementById("report-risk-btn");

@@ -21,7 +21,7 @@ function doPost(e) {
       }
       // Ensure Headers exist
       if (inventorySheet.getLastRow() === 0) {
-        inventorySheet.appendRow(["Asset ID", "Name", "Description", "Assigned To", "Status", "Date", "Date Assigned", "Date Returned", "Condition", "Incident Note"]);
+        inventorySheet.appendRow(["Asset ID", "Name", "Description", "Assigned To", "Status", "Date", "Date Assigned", "Date Returned", "Condition", "Incident Note", "Last Assigned To", "Last Date Assigned", "Last Date Returned"]);
       }
 
       const inventoryData = items.data.map(item => [
@@ -34,11 +34,14 @@ function doPost(e) {
         item.fechaAsignacion || "",
         item.fechaRetorno || "",
         item.condition || "",
-        item.incidentNote || ""
+        item.incidentNote || "",
+        item.lastAssignedTo || "",
+        item.lastDateAssigned || "",
+        item.lastDateReturned || ""
       ]);
 
       if (inventoryData.length > 0) {
-        inventorySheet.getRange(2, 1, inventoryData.length, 10).setValues(inventoryData);
+        inventorySheet.getRange(2, 1, inventoryData.length, 13).setValues(inventoryData);
       }
 
       // --- Update Employees Sheet ---
@@ -63,28 +66,20 @@ function doPost(e) {
         employeeSheet.getRange(2, 1, employeeData.length, 3).setValues(employeeData);
       }
 
-      // --- Update Movements Sheet ---
-      const movementsSheet = ss.getSheetByName("Movements") || ss.insertSheet("Movements");
-      // Clear old data
-      if (movementsSheet.getLastRow() > 1) {
-        movementsSheet.getRange(2, 1, movementsSheet.getLastRow() - 1, movementsSheet.getLastColumn()).clearContent();
+      // --- Update History Log Sheet ---
+      const historySheet = ss.getSheetByName("History Log") || ss.insertSheet("History Log");
+      if (historySheet.getLastRow() > 1) {
+        historySheet.getRange(2, 1, historySheet.getLastRow() - 1, historySheet.getLastColumn()).clearContent();
       }
-      // Ensure Headers exist
-      if (movementsSheet.getLastRow() === 0) {
-        movementsSheet.appendRow(["Asset ID", "Name", "Assigned To", "Date Assigned", "Date Returned"]);
+      if (historySheet.getLastRow() === 0) {
+        historySheet.appendRow(["ID", "Timestamp", "Date", "Asset ID", "Asset Name", "Employee", "Action"]);
       }
-
-      // Map data with history fields
-      const movementsData = items.data.map(item => [
-        item.id,
-        item.nombre,
-        item.lastAssignedTo || "",
-        item.lastDateAssigned || "",
-        item.lastDateReturned || ""
-      ]);
-
-      if (movementsData.length > 0) {
-        movementsSheet.getRange(2, 1, movementsData.length, 5).setValues(movementsData);
+      
+      if (items.history && items.history.length > 0) {
+        const historyData = items.history.map(h => [
+          h.id, h.timestamp, h.dateStr, h.assetId, h.assetName, h.employeeName, h.action
+        ]);
+        historySheet.getRange(2, 1, historyData.length, 7).setValues(historyData);
       }
 
       return ContentService.createTextOutput(JSON.stringify({ status: "success" })).setMimeType(ContentService.MimeType.JSON);
@@ -100,25 +95,11 @@ function doPost(e) {
 function doGet(e) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
 
-  // Movements (history mapping)
-  const movementsSheet = ss.getSheetByName("Movements");
-  let movementsMap = {};
-  if (movementsSheet && movementsSheet.getLastRow() > 1) {
-    const movData = movementsSheet.getRange(2, 1, movementsSheet.getLastRow() - 1, 5).getValues();
-    movData.forEach(row => {
-      movementsMap[row[0]] = {
-        lastAssignedTo: row[2] || "",
-        lastDateAssigned: row[3] || "",
-        lastDateReturned: row[4] || ""
-      };
-    });
-  }
-  
   // Inventory
   const inventorySheet = ss.getSheetByName("Inventory");
   let inventory = [];
   if (inventorySheet && inventorySheet.getLastRow() > 1) {
-    const data = inventorySheet.getRange(2, 1, inventorySheet.getLastRow() - 1, 10).getValues();
+    const data = inventorySheet.getRange(2, 1, inventorySheet.getLastRow() - 1, 13).getValues();
     inventory = data.map(row => ({
       id: row[0],
       nombre: row[1],
@@ -130,9 +111,9 @@ function doGet(e) {
       fechaRetorno: row[7] || "",
       condition: row[8] || "",
       incidentNote: row[9] || "",
-      lastAssignedTo: movementsMap[row[0]] ? movementsMap[row[0]].lastAssignedTo : "",
-      lastDateAssigned: movementsMap[row[0]] ? movementsMap[row[0]].lastDateAssigned : "",
-      lastDateReturned: movementsMap[row[0]] ? movementsMap[row[0]].lastDateReturned : ""
+      lastAssignedTo: row[10] || "",
+      lastDateAssigned: row[11] || "",
+      lastDateReturned: row[12] || ""
     }));
   }
 
@@ -149,9 +130,26 @@ function doGet(e) {
     }));
   }
 
+  // History Log
+  const historySheet = ss.getSheetByName("History Log");
+  let historyLog = [];
+  if (historySheet && historySheet.getLastRow() > 1) {
+    const data = historySheet.getRange(2, 1, historySheet.getLastRow() - 1, 7).getValues();
+    historyLog = data.map(row => ({
+      id: row[0],
+      timestamp: row[1],
+      dateStr: row[2],
+      assetId: row[3],
+      assetName: row[4],
+      employeeName: row[5],
+      action: row[6]
+    }));
+  }
+
   const result = {
     inventory: inventory,
     employees: employees,
+    history: historyLog,
     passcode: "" // You can store passcode in a "Config" sheet if you want to sync it
   };
 
@@ -163,11 +161,8 @@ function setupSheets() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   
   let sheet = ss.getSheetByName("Inventory") || ss.insertSheet("Inventory");
-  if (sheet.getLastRow() === 0) sheet.appendRow(["Asset ID", "Name", "Description", "Assigned To", "Status", "Date", "Date Assigned", "Date Returned", "Condition", "Incident Note"]);
+  if (sheet.getLastRow() === 0) sheet.appendRow(["Asset ID", "Name", "Description", "Assigned To", "Status", "Date", "Date Assigned", "Date Returned", "Condition", "Incident Note", "Last Assigned To", "Last Date Assigned", "Last Date Returned"]);
   
   sheet = ss.getSheetByName("Employees") || ss.insertSheet("Employees");
   if (sheet.getLastRow() === 0) sheet.appendRow(["Badge ID", "Full Name", "Phone Number"]);
-  
-  sheet = ss.getSheetByName("Movements") || ss.insertSheet("Movements");
-  if (sheet.getLastRow() === 0) sheet.appendRow(["Asset ID", "Name", "Assigned To", "Date Assigned", "Date Returned"]);
 }

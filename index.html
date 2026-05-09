@@ -683,6 +683,29 @@
                         <input type="password" id="new-passcode" maxlength="4" placeholder="Update passcode"
                             autocomplete="off" />
                     </div>
+                    <div class="input-group" style="
+                margin-top: 2rem;
+                border-top: 1px solid var(--border);
+                padding-top: 1.5rem;
+              ">
+                        <label>Data Management</label>
+                        <button type="button" id="backup-all-data-btn" class="btn-primary"
+                            style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 10px;">
+                            <i class="ph ph-download-simple"></i> Backup All Data
+                        </button>
+                        <button type="button" id="restore-data-btn" class="btn-secondary"
+                            style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 10px; border-color: var(--primary); color: var(--primary);">
+                            <i class="ph ph-upload-simple"></i> Restore Data
+                        </button>
+                        <input type="file" id="restore-file-input" accept=".json" style="display: none;" />
+                        <button type="button" id="clear-history-log-btn" class="btn-secondary"
+                            style="color: var(--danger); border-color: var(--danger); width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                            <i class="ph ph-trash"></i> Clear History Log
+                        </button>
+                        <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;">
+                            It is recommended to backup your data before clearing the history log.
+                        </p>
+                    </div>
                     <div class="modal-actions">
                         <button type="button" class="btn-secondary" id="cancel-config">
                             Cancel
@@ -944,10 +967,40 @@
                     </div>
                     <div style="text-align: left; flex: 1">
                         <div style="font-weight: 600; font-size: 1.1rem">
-                            Movements
+                            Assigned History
                         </div>
                         <div style="font-size: 0.85rem; color: var(--text-muted)">
-                            View asset assignment history.
+                            View asset assignment log history.
+                        </div>
+                    </div>
+                </button>
+
+                <!-- Last Movements Report -->
+                <button id="report-last-movements-btn" class="dashboard-action-btn" style="
+              display: flex;
+              align-items: center;
+              gap: 15px;
+              padding: 1.2rem;
+              background: var(--glass);
+              border: 1px solid var(--border);
+              border-radius: 16px;
+              cursor: pointer;
+              transition: all 0.2s;
+              color: white;
+            ">
+                    <div style="
+                background: rgba(168, 85, 247, 0.2);
+                padding: 10px;
+                border-radius: 50%;
+              ">
+                        <i class="ph ph-clock-counter-clockwise" style="color: #a855f7; font-size: 1.5rem"></i>
+                    </div>
+                    <div style="text-align: left; flex: 1">
+                        <div style="font-weight: 600; font-size: 1.1rem">
+                            Returned History
+                        </div>
+                        <div style="font-size: 0.85rem; color: var(--text-muted)">
+                            View asset return log history.
                         </div>
                     </div>
                 </button>
@@ -1104,7 +1157,7 @@
                 border-bottom: 1px solid var(--border);
                 padding-bottom: 1rem;
               ">
-                        <span style="color: var(--text-muted); font-size: 1rem">Total Devices</span>
+                        <span style="color: var(--text-muted); font-size: 1rem">TOTAL ITEMS</span>
                         <span id="stat-total" style="font-size: 1.5rem; font-weight: 700; color: white">0</span>
                     </div>
 
@@ -1262,13 +1315,20 @@
             <div class="modal-header">
                 <div style="display: flex; align-items: center; gap: 10px; flex: 1;">
                     <i class="ph ph-arrows-left-right" style="color: var(--success); font-size: 1.5rem"></i>
-                    <h3>Movements Report</h3>
+                    <h3>Assigned History</h3>
                 </div>
                 <button id="close-report-movements-modal" class="btn-icon">
                     <i class="ph ph-x"></i>
                 </button>
                 <div class="header-action-wrapper"
-                    style="display: flex; gap: 10px; width: 100%; justify-content: flex-end;">
+                    style="display: flex; gap: 10px; width: 100%; justify-content: flex-end; align-items: center;">
+                    <select id="movements-time-filter"
+                        style="padding: 0.5rem; background: var(--glass); color: white; border: 1px solid var(--border); border-radius: 8px; font-size: 0.85rem; outline: none;">
+                        <option value="all" style="color: black;">All Time</option>
+                        <option value="weekly" style="color: black;">Weekly (Last 7 Days)</option>
+                        <option value="monthly" style="color: black;">Monthly (Last 30 Days)</option>
+                        <option value="yearly" style="color: black;">Yearly (Last 365 Days)</option>
+                    </select>
                     <button id="report-movements-export-btn" class="btn-primary"
                         style="font-size: 0.85rem; padding: 0.5rem 1rem; width: auto; display: flex; align-items: center; gap: 5px;">
                         <i class="ph ph-download-simple"></i> Export
@@ -1296,6 +1356,65 @@
                 <div class="employee-list-container" style="flex: 1">
                     <div id="report-movements-grid-container" class="inventory-grid">
                         <!-- Movements list items will render here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Reporte de Last Movements -->
+    <div id="report-last-movements-modal" class="modal-overlay hidden">
+        <div class="modal-content glass-panel large-modal" style="
+          height: 90vh;
+          max-height: 800px;
+          display: flex;
+          flex-direction: column;
+          background: var(--bg-card);
+        ">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 10px; flex: 1;">
+                    <i class="ph ph-clock-counter-clockwise" style="color: #a855f7; font-size: 1.5rem"></i>
+                    <h3>Returned History</h3>
+                </div>
+                <button id="close-report-last-movements-modal" class="btn-icon">
+                    <i class="ph ph-x"></i>
+                </button>
+                <div class="header-action-wrapper"
+                    style="display: flex; gap: 10px; width: 100%; justify-content: flex-end; align-items: center;">
+                    <select id="last-movements-time-filter"
+                        style="padding: 0.5rem; background: var(--glass); color: white; border: 1px solid var(--border); border-radius: 8px; font-size: 0.85rem; outline: none;">
+                        <option value="all" style="color: black;">All Time</option>
+                        <option value="weekly" style="color: black;">Weekly (Last 7 Days)</option>
+                        <option value="monthly" style="color: black;">Monthly (Last 30 Days)</option>
+                        <option value="yearly" style="color: black;">Yearly (Last 365 Days)</option>
+                    </select>
+                    <button id="report-last-movements-export-btn" class="btn-primary"
+                        style="font-size: 0.85rem; padding: 0.5rem 1rem; width: auto; display: flex; align-items: center; gap: 5px;">
+                        <i class="ph ph-download-simple"></i> Export
+                    </button>
+                    <button id="report-last-movements-print-btn" class="btn-primary"
+                        style="font-size: 0.85rem; padding: 0.5rem 1rem; width: auto; background: var(--purple); border-color: var(--purple); display: flex; align-items: center; gap: 5px;">
+                        <i class="ph ph-printer"></i> Print
+                    </button>
+                </div>
+            </div>
+            <div class="modal-body" style="
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            padding-bottom: 20px;
+          ">
+                <!-- Search / Filter -->
+                <div class="search-container" style="margin-bottom: 1rem;">
+                    <i class="ph ph-magnifying-glass search-icon"></i>
+                    <input type="text" id="last-movements-search-input" placeholder="Search by asset or employee..."
+                        autocomplete="off" />
+                </div>
+
+                <div class="employee-list-container" style="flex: 1">
+                    <div id="report-last-movements-grid-container" class="inventory-grid">
+                        <!-- Last Movements list items will render here -->
                     </div>
                 </div>
             </div>
@@ -1612,6 +1731,48 @@
                         <div class="step-text" style="margin-left: 0">
                             Updates are saved locally and synced automatically with <strong>Google Sheets</strong> when
                             you see the green cloud icon (<i class="ph ph-cloud-check"></i>).
+                        </div>
+                    </div>
+
+                    <!-- Data Management Section -->
+                    <div class="help-section">
+                        <h4><i class="ph ph-database"></i> Data Management & Recovery</h4>
+                        <div class="step-text" style="margin-left: 0; margin-bottom: 15px;">
+                            These options are found inside the <strong>Cloud Sync Settings</strong> (click the cloud
+                            icon in the top left corner).
+                        </div>
+
+                        <div class="help-step">
+                            <div class="step-number" style="background: var(--success); border-color: var(--success);">
+                                <i class="ph ph-download-simple"></i></div>
+                            <div class="step-text">
+                                <strong>Backup All Data:</strong> <span
+                                    style="color: var(--success); font-weight: bold;">[SAFE]</span> Downloads a secure
+                                <code>.json</code> file to your computer with an exact snapshot of your Inventory,
+                                Employees, and History. Do this regularly!
+                            </div>
+                        </div>
+
+                        <div class="help-step">
+                            <div class="step-number" style="background: var(--warning); border-color: var(--warning);">
+                                <i class="ph ph-upload-simple"></i></div>
+                            <div class="step-text">
+                                <strong>Restore Data:</strong> <span
+                                    style="color: var(--warning); font-weight: bold;">[CAUTION]</span> Upload a
+                                <code>.json</code> backup to overwrite and restore your entire app and Google Sheets.
+                                Useful only for disaster recovery.
+                            </div>
+                        </div>
+
+                        <div class="help-step">
+                            <div class="step-number" style="background: var(--danger); border-color: var(--danger);"><i
+                                    class="ph ph-trash"></i></div>
+                            <div class="step-text">
+                                <strong>Clear History Log:</strong> <span
+                                    style="color: var(--danger); font-weight: bold;">[CRITICAL]</span> Permanently
+                                deletes all assignment/return records to start fresh. <strong>This cannot be
+                                    undone.</strong> Always run a backup first!
+                            </div>
                         </div>
                     </div>
                 </div>
