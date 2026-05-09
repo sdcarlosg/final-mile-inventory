@@ -993,6 +993,12 @@ input:focus {
   #report-risk-modal [style*="border-left"] {
     font-size: 0.7rem !important;
   }
+
+  /* Hide export buttons on history modals to save space for time filters */
+  #report-movements-export-btn,
+  #report-last-movements-export-btn {
+    display: none !important;
+  }
 }
 
 /* FAB Styling */
